@@ -1,8 +1,6 @@
 using System;
 using HauntedFactory.Player;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 
 namespace HauntedFactory.Core
 {
@@ -32,11 +30,16 @@ namespace HauntedFactory.Core
         [SerializeField] private AudioClip loseSound;
 
         private int keysCollected;
+        private float startTime;
+        private float endTime = -1f;
 
         public GameState State { get; private set; } = GameState.Playing;
         public int KeysCollected => keysCollected;
         public int RequiredKeys => requiredKeys;
         public bool HasAllKeys => keysCollected >= requiredKeys;
+
+        /// <summary>Segundos de partida (se congela al terminar).</summary>
+        public float ElapsedTime => (endTime >= 0f ? endTime : Time.time) - startTime;
 
         /// <summary>(llaves actuales, llaves necesarias)</summary>
         public event Action<int, int> KeysChanged;
@@ -59,23 +62,20 @@ namespace HauntedFactory.Core
 
         private void Start()
         {
+            startTime = Time.time;
             KeysChanged?.Invoke(keysCollected, requiredKeys);
+            // Un poco después, para que el HUD ya esté suscrito
+            Invoke(nameof(ShowIntroMessage), 0.5f);
+        }
+
+        private void ShowIntroMessage()
+        {
             ShowMessage("Encuentra las " + requiredKeys + " llaves y escapa de la fábrica.");
         }
 
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
-        }
-
-        private void Update()
-        {
-            // Temporal hasta la Fase 4: R reinicia cuando la partida terminó
-            Keyboard kb = Keyboard.current;
-            if (State != GameState.Playing && kb != null && kb.rKey.wasPressedThisFrame)
-            {
-                RestartLevel();
-            }
         }
 
         /// <summary>Suma una llave. Lo llaman las llaves recolectables.</summary>
@@ -105,7 +105,7 @@ namespace HauntedFactory.Core
             State = GameState.Won;
             PlaySound(winSound);
             EndGame();
-            Debug.Log("[Juego] ¡VICTORIA! El elfo escapó. (R para reiniciar)");
+            Debug.Log("[Juego] ¡VICTORIA! El elfo escapó.");
             GameWon?.Invoke();
         }
 
@@ -116,25 +116,29 @@ namespace HauntedFactory.Core
             State = GameState.Lost;
             PlaySound(loseSound);
             EndGame();
-            Debug.Log("[Juego] GAME OVER: te atraparon. (R para reiniciar)");
+            Debug.Log("[Juego] GAME OVER: te atraparon.");
             GameLost?.Invoke();
         }
 
         /// <summary>Recarga la escena actual desde cero.</summary>
         public void RestartLevel()
         {
-            Time.timeScale = 1f;
-            Scene current = SceneManager.GetActiveScene();
-            if (current.buildIndex >= 0) SceneManager.LoadScene(current.buildIndex);
-            else SceneManager.LoadScene(current.name);
+            SceneLoader.ReloadCurrent();
+        }
+
+        /// <summary>Activa o bloquea el control del jugador (movimiento, cámara y linterna).</summary>
+        public void SetPlayerControl(bool canControl)
+        {
+            if (playerMovement != null) playerMovement.CanMove = canControl;
+            if (playerLook != null) playerLook.CanLook = canControl;
+            if (flashlight != null) flashlight.CanUseInput = canControl;
         }
 
         /// <summary>Bloquea al jugador, libera el cursor y congela el juego.</summary>
         private void EndGame()
         {
-            if (playerMovement != null) playerMovement.CanMove = false;
-            if (playerLook != null) playerLook.CanLook = false;
-            if (flashlight != null) flashlight.CanUseInput = false;
+            endTime = Time.time;
+            SetPlayerControl(false);
             PlayerLook.SetCursorLocked(false);
             Time.timeScale = 0f;
         }

@@ -32,7 +32,7 @@ namespace HauntedFactory.EditorTools
     /// </summary>
     public static class FactorySceneBuilder
     {
-        private const string ScenePath = "Assets/Scenes/Factory.unity";
+        private const string ScenePath = SceneBuildUtility.FactoryPath;
         private const string MaterialsFolder = "Assets/Materials";
         private const string NavMeshFolder = "Assets/Scenes/Factory";
         private const string NavMeshPath = NavMeshFolder + "/NavMesh-Factory.asset";
@@ -63,21 +63,18 @@ namespace HauntedFactory.EditorTools
         private static Material matKey, matDoor;
         private static Material matToyBody, matToySkin, matToyHat, matToyEyes;
 
-        [MenuItem("Tools/Haunted Factory/Construir escena de la fábrica")]
-        public static void BuildScene()
+        [MenuItem("Tools/Haunted Factory/Construir escena de la fábrica", priority = 1)]
+        public static void BuildFromMenu()
         {
             // Guardar la escena abierta si el usuario quiere
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            if (!SceneBuildUtility.ConfirmOverwrite(ScenePath)) return;
+            Build();
+        }
 
-            if (File.Exists(ScenePath) &&
-                !EditorUtility.DisplayDialog(
-                    "Reconstruir la fábrica",
-                    "Ya existe " + ScenePath + ".\nSe va a regenerar (escena y NavMesh) y se perderán los cambios hechos a mano en esa escena.\n\n¿Continuar?",
-                    "Sobrescribir", "Cancelar"))
-            {
-                return;
-            }
-
+        /// <summary>Construye y guarda la escena sin preguntar (las confirmaciones van antes).</summary>
+        public static void Build()
+        {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             CreateMaterials();
@@ -94,9 +91,10 @@ namespace HauntedFactory.EditorTools
             BuildEnemies();
             GameObject player = BuildPlayer(new Vector3(0f, 0.05f, 3f));
             BuildGameManager(player);
+            FactoryUIBuilder.Build(player);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
-            AddSceneToBuildSettings(ScenePath);
+            SceneBuildUtility.ConfigureBuildSettings();
             AssetDatabase.SaveAssets();
             Debug.Log("[Haunted Factory] Escena construida y guardada en " + ScenePath);
         }
@@ -716,18 +714,6 @@ namespace HauntedFactory.EditorTools
             light.intensity = 1.5f;
             light.range = 3f;
             light.shadows = LightShadows.None;
-        }
-
-        /// <summary>Agrega la escena a Build Settings (sin quitar las que ya estaban) para poder reiniciarla.</summary>
-        private static void AddSceneToBuildSettings(string path)
-        {
-            var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-            foreach (EditorBuildSettingsScene s in scenes)
-            {
-                if (s.path == path) return;
-            }
-            scenes.Add(new EditorBuildSettingsScene(path, true));
-            EditorBuildSettings.scenes = scenes.ToArray();
         }
 
         // ------------------------------------------------------------------

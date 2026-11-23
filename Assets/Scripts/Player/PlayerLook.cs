@@ -32,7 +32,12 @@ namespace HauntedFactory.Player
             Mouse mouse = Mouse.current;
             if (mouse == null) return;
 
-            HandleCursorForTesting(mouse);
+            // Si el cursor se soltó (por ejemplo al cambiar de ventana), un clic lo recaptura
+            if (CanLook && Time.timeScale > 0f && Cursor.lockState != CursorLockMode.Locked &&
+                mouse.leftButton.wasPressedThisFrame)
+            {
+                SetCursorLocked(true);
+            }
 
             if (!CanLook || Cursor.lockState != CursorLockMode.Locked) return;
 
@@ -45,23 +50,6 @@ namespace HauntedFactory.Player
             if (cameraRoot != null)
             {
                 cameraRoot.localEulerAngles = new Vector3(pitch, 0f, 0f);
-            }
-        }
-
-        /// <summary>
-        /// Esc libera el cursor y clic izquierdo lo vuelve a capturar.
-        /// (Temporal: en la Fase 4 Esc abrirá el menú de pausa.)
-        /// </summary>
-        private void HandleCursorForTesting(Mouse mouse)
-        {
-            Keyboard kb = Keyboard.current;
-            if (kb != null && kb.escapeKey.wasPressedThisFrame)
-            {
-                SetCursorLocked(false);
-            }
-            else if (CanLook && Cursor.lockState != CursorLockMode.Locked && mouse.leftButton.wasPressedThisFrame)
-            {
-                SetCursorLocked(true);
             }
         }
 
