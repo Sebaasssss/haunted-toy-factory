@@ -23,6 +23,11 @@ namespace HauntedFactory.UI
         [SerializeField] private Color keySlotFull = new Color(1f, 0.8f, 0.25f, 1f);
         [SerializeField] private Text messageText;
 
+        [Header("Escondites")]
+        [SerializeField] private PlayerHiding hiding;
+        [SerializeField] private Text promptText;
+        [SerializeField] private GameObject hiddenOverlay;
+
         [Header("Colores de batería")]
         [SerializeField] private Color batteryNormal = new Color(0.95f, 0.85f, 0.3f);
         [SerializeField] private Color batteryLow = new Color(0.9f, 0.15f, 0.1f);
@@ -52,11 +57,34 @@ namespace HauntedFactory.UI
             }
 
             SetMessageAlpha(0f);
+
+            if (hiding != null)
+            {
+                hiding.PromptChanged += OnPromptChanged;
+                hiding.HiddenChanged += OnHiddenChanged;
+            }
+            OnPromptChanged("");
+            OnHiddenChanged(false);
+        }
+
+        private void OnPromptChanged(string prompt)
+        {
+            if (promptText != null) promptText.text = prompt;
+        }
+
+        private void OnHiddenChanged(bool hidden)
+        {
+            if (hiddenOverlay != null) hiddenOverlay.SetActive(hidden);
         }
 
         private void OnDestroy()
         {
             if (flashlight != null) flashlight.BatteryChanged -= OnBatteryChanged;
+            if (hiding != null)
+            {
+                hiding.PromptChanged -= OnPromptChanged;
+                hiding.HiddenChanged -= OnHiddenChanged;
+            }
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.KeysChanged -= OnKeysChanged;

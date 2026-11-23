@@ -53,6 +53,9 @@ namespace HauntedFactory.Player
 
         private void Update()
         {
+            // Escondido (controlador desactivado): no moverse
+            if (!controller.enabled) return;
+
             Vector2 input = CanMove ? ReadMoveInput() : Vector2.zero;
 
             IsMoving = input.sqrMagnitude > 0.01f;

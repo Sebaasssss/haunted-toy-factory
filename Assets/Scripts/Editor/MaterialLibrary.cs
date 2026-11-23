@@ -87,6 +87,8 @@ namespace HauntedFactory.EditorTools
         public static Material Key => Get("M_Llave", new Color(1f, 0.78f, 0.2f), 0.8f, metallic: 1f, emission: new Color(1.2f, 0.9f, 0.2f));
         public static Material Door => Get("M_PuertaSalida", new Color(0.35f, 0.05f, 0.05f), 0.5f, metallic: 0.6f);
         public static Material Screen => Get("M_PantallaVerde", new Color(0.1f, 0.6f, 0.2f), 0.8f, emission: new Color(0.2f, 1.2f, 0.3f));
+        public static Material Fire => Get("M_Fuego", new Color(1f, 0.45f, 0.1f), 0.2f, emission: new Color(4f, 1.4f, 0.2f));
+        public static Material Sack => Get("MT_Costal", new Color(0.55f, 0.15f, 0.12f), 0.05f, texture: "T_Peluche");
         public static Material SnowFlake => GetParticle("M_CopoNieve", new Color(1f, 1f, 1f, 0.9f));
 
         /// <summary>Material URP Lit: lo carga si existe o lo crea.</summary>

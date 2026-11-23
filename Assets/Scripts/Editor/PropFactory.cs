@@ -655,5 +655,273 @@ namespace HauntedFactory.EditorTools
             light.shadows = LightShadows.None;
             return light;
         }
+
+        // ==================================================================
+        // Escondites (armario y regalo gigante)
+        // ==================================================================
+
+        /// <summary>
+        /// Armario de madera hecho de tablas delgadas (se ven por dentro) con una
+        /// rendija entre las puertas. Frente hacia +Z local. Crea la zona trigger
+        /// con HidingSpot, el punto de vista interior y el punto de salida.
+        /// </summary>
+        public static HidingSpot Wardrobe(Transform parent, string name, Vector3 pos, float yaw, AudioClip doorSound)
+        {
+            Transform root = Child(parent, name, pos, yaw);
+            const float w = 1.3f, h = 2.3f, d = 0.8f, t = 0.05f, gap = 0.05f;
+            Material wood = MaterialLibrary.DarkWood;
+            Box("Fondo", root, new Vector3(0f, h * 0.5f, -d * 0.5f + t * 0.5f), new Vector3(w, h, t), wood);
+            Box("Lado_Izq", root, new Vector3(-w * 0.5f + t * 0.5f, h * 0.5f, 0f), new Vector3(t, h, d), wood);
+            Box("Lado_Der", root, new Vector3(w * 0.5f - t * 0.5f, h * 0.5f, 0f), new Vector3(t, h, d), wood);
+            Box("Techo", root, new Vector3(0f, h - t * 0.5f, 0f), new Vector3(w, t, d), wood);
+            Box("Piso", root, new Vector3(0f, t * 0.5f, 0f), new Vector3(w, t, d), wood);
+            Box("Cornisa", root, new Vector3(0f, h + 0.04f, 0.02f), new Vector3(w + 0.1f, 0.08f, d + 0.06f), MaterialLibrary.Wood, false);
+
+            float doorW = (w - gap) * 0.5f;
+            Box("Puerta_Izq", root, new Vector3(-(gap * 0.5f + doorW * 0.5f), h * 0.5f, d * 0.5f - t * 0.5f), new Vector3(doorW, h - 2f * t, t), MaterialLibrary.Wood);
+            Box("Puerta_Der", root, new Vector3(gap * 0.5f + doorW * 0.5f, h * 0.5f, d * 0.5f - t * 0.5f), new Vector3(doorW, h - 2f * t, t), MaterialLibrary.Wood);
+            Sphere("Manija_Izq", root, new Vector3(-0.08f, 1.15f, d * 0.5f + 0.02f), Vector3.one * 0.05f, MaterialLibrary.Gold, false);
+            Sphere("Manija_Der", root, new Vector3(0.08f, 1.15f, d * 0.5f + 0.02f), Vector3.one * 0.05f, MaterialLibrary.Gold, false);
+
+            return CreateHidingZone(root, "armario", new Vector3(0f, 1.45f, 0.05f), new Vector3(0f, 0.05f, d * 0.5f + 0.75f),
+                                    new Vector3(0f, 1f, d * 0.5f + 0.6f), new Vector3(1.4f, 2f, 1.2f), doorSound);
+        }
+
+        /// <summary>Regalo gigante con la tapa un poco levantada: se ve por la rendija de arriba.</summary>
+        public static HidingSpot GiantGiftBox(Transform parent, string name, Vector3 pos, float yaw, AudioClip sound)
+        {
+            Transform root = Child(parent, name, pos, yaw);
+            const float s = 1.5f, wallH = 1.38f, t = 0.05f;
+            Material wrap = Pick(MaterialLibrary.Wraps);
+            Material ribbon = Pick(MaterialLibrary.Ribbons);
+            Box("Frente", root, new Vector3(0f, wallH * 0.5f, s * 0.5f - t * 0.5f), new Vector3(s, wallH, t), wrap);
+            Box("Atras", root, new Vector3(0f, wallH * 0.5f, -s * 0.5f + t * 0.5f), new Vector3(s, wallH, t), wrap);
+            Box("Lado_Izq", root, new Vector3(-s * 0.5f + t * 0.5f, wallH * 0.5f, 0f), new Vector3(t, wallH, s), wrap);
+            Box("Lado_Der", root, new Vector3(s * 0.5f - t * 0.5f, wallH * 0.5f, 0f), new Vector3(t, wallH, s), wrap);
+            // Tapa flotando 7 cm sobre las paredes (la rendija para mirar)
+            Box("Tapa", root, new Vector3(0f, wallH + 0.07f + 0.06f, 0f), new Vector3(s + 0.1f, 0.12f, s + 0.1f), wrap);
+            Box("Liston_Tapa_A", root, new Vector3(0f, wallH + 0.2f, 0f), new Vector3(s + 0.11f, 0.02f, 0.18f), ribbon, false);
+            Box("Liston_Tapa_B", root, new Vector3(0f, wallH + 0.2f, 0f), new Vector3(0.18f, 0.02f, s + 0.11f), ribbon, false);
+            Box("Liston_Frente", root, new Vector3(0f, wallH * 0.5f, s * 0.5f + 0.005f), new Vector3(0.18f, wallH, 0.02f), ribbon, false);
+            GameObject bowA = Sphere("Moño_A", root, new Vector3(-0.2f, wallH + 0.3f, 0f), new Vector3(0.45f, 0.22f, 0.25f), ribbon, false);
+            GameObject bowB = Sphere("Moño_B", root, new Vector3(0.2f, wallH + 0.3f, 0f), new Vector3(0.45f, 0.22f, 0.25f), ribbon, false);
+            Rotate(bowA, 0f, 0f, 25f);
+            Rotate(bowB, 0f, 0f, -25f);
+
+            return CreateHidingZone(root, "regalo gigante", new Vector3(0f, wallH + 0.035f, 0.2f), new Vector3(0f, 0.05f, s * 0.5f + 0.75f),
+                                    new Vector3(0f, 1f, s * 0.5f + 0.6f), new Vector3(1.6f, 2f, 1.2f), sound);
+        }
+
+        private static HidingSpot CreateHidingZone(Transform root, string displayName, Vector3 viewLocal, Vector3 exitLocal,
+                                                   Vector3 zoneCenter, Vector3 zoneSize, AudioClip sound)
+        {
+            Transform view = Child(root, "PuntoDeVista", viewLocal);
+            Transform exit = Child(root, "Salida", exitLocal);
+
+            Transform zoneTf = Child(root, "ZonaEsconder", zoneCenter);
+            var zone = zoneTf.gameObject.AddComponent<BoxCollider>();
+            zone.isTrigger = true;
+            zone.size = zoneSize;
+            var spot = zoneTf.gameObject.AddComponent<HidingSpot>();
+            var so = new SerializedObject(spot);
+            so.FindProperty("viewPoint").objectReferenceValue = view;
+            so.FindProperty("exitPoint").objectReferenceValue = exit;
+            so.FindProperty("doorSound").objectReferenceValue = sound;
+            so.FindProperty("displayName").stringValue = displayName;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return spot;
+        }
+
+        // ==================================================================
+        // Muñecas, sala de juegos y oficina
+        // ==================================================================
+
+        /// <summary>Muñeca de trapo con vestido. hanging = colgada de un hilo desde el techo.</summary>
+        public static Transform Doll(Transform parent, string name, Vector3 pos, float scale, float yaw, bool hanging = false)
+        {
+            Transform root = Child(parent, name, pos, yaw);
+            root.localScale = Vector3.one * scale;
+            Material dress = Pick(MaterialLibrary.ToyPlastics);
+            Material skin = MaterialLibrary.Skin;
+            Material hair = Pick(new[] { MaterialLibrary.Black, MaterialLibrary.Fur, MaterialLibrary.Gold });
+            Cylinder("Vestido", root, new Vector3(0f, 0.32f, 0f), new Vector3(0.3f, 0.2f, 0.3f), dress, false);
+            Cylinder("Torso", root, new Vector3(0f, 0.6f, 0f), new Vector3(0.18f, 0.1f, 0.14f), dress, false);
+            Sphere("Cabeza", root, new Vector3(0f, 0.85f, 0f), Vector3.one * 0.26f, skin, false);
+            Sphere("Pelo", root, new Vector3(0f, 0.9f, -0.03f), new Vector3(0.28f, 0.24f, 0.26f), hair, false);
+            Sphere("Ojo_Izq", root, new Vector3(-0.05f, 0.86f, 0.12f), Vector3.one * 0.045f, MaterialLibrary.Black, false);
+            Sphere("Ojo_Der", root, new Vector3(0.05f, 0.86f, 0.12f), Vector3.one * 0.045f, MaterialLibrary.Black, false);
+            Box("Boca", root, new Vector3(0f, 0.79f, 0.125f), new Vector3(0.06f, 0.008f, 0.01f), MaterialLibrary.NutcrackerRed, false);
+            for (int i = 0; i < 2; i++)
+            {
+                float x = i == 0 ? -0.11f : 0.11f;
+                GameObject arm = Cylinder("Brazo_" + i, root, new Vector3(x, 0.55f, 0f), new Vector3(0.05f, 0.14f, 0.05f), skin, false);
+                Rotate(arm, 0f, 0f, i == 0 ? -20f : 20f);
+                Cylinder("Pierna_" + i, root, new Vector3(x * 0.5f, 0.06f, 0f), new Vector3(0.05f, 0.08f, 0.05f), skin, false);
+            }
+            if (hanging)
+            {
+                Cylinder("Hilo", root, new Vector3(0f, 1.6f, 0f), new Vector3(0.01f, 0.7f, 0.01f), MaterialLibrary.White, false);
+            }
+            return root;
+        }
+
+        /// <summary>Partes de muñecas sobre una mesa de trabajo: cabezas, brazos y torsos.</summary>
+        public static void DollParts(Transform parent, string name, Vector3 tableTopCenter, float tableWidth)
+        {
+            Transform root = Child(parent, name, tableTopCenter);
+            for (int i = 0; i < 6; i++)
+            {
+                float x = Range(-tableWidth * 0.45f, tableWidth * 0.45f);
+                float z = Range(-0.4f, 0.4f);
+                switch (i % 3)
+                {
+                    case 0:
+                        Sphere("Cabeza_" + i, root, new Vector3(x, 0.11f, z), Vector3.one * 0.22f, MaterialLibrary.Skin, false);
+                        Sphere("Ojo_" + i, root, new Vector3(x - 0.04f, 0.14f, z + 0.1f), Vector3.one * 0.04f, MaterialLibrary.Black, false);
+                        break;
+                    case 1:
+                        GameObject arm = Cylinder("Brazo_" + i, root, new Vector3(x, 0.03f, z), new Vector3(0.05f, 0.14f, 0.05f), MaterialLibrary.Skin, false);
+                        Rotate(arm, 90f, Range(0f, 180f), 0f);
+                        break;
+                    default:
+                        Cylinder("Torso_" + i, root, new Vector3(x, 0.12f, z), new Vector3(0.2f, 0.12f, 0.16f), Pick(MaterialLibrary.ToyPlastics), false);
+                        break;
+                }
+            }
+        }
+
+        public static Transform WorkTable(Transform parent, string name, Vector3 pos, float yaw, float width, float depth)
+        {
+            Transform table = Child(parent, name, pos, yaw);
+            GameObject top = Box("Cubierta", table, new Vector3(0f, 0.85f, 0f), new Vector3(width, 0.1f, depth), MaterialLibrary.Wood);
+            Tile(top, AutoTiling.Mode.Floor, 1.5f);
+            for (int l = 0; l < 4; l++)
+            {
+                float x = l % 2 == 0 ? -width * 0.5f + 0.1f : width * 0.5f - 0.1f;
+                float z = l < 2 ? -depth * 0.5f + 0.1f : depth * 0.5f - 0.1f;
+                Box("Pata_" + l, table, new Vector3(x, 0.4f, z), new Vector3(0.1f, 0.8f, 0.1f), MaterialLibrary.DarkWood, l == 0);
+            }
+            return table;
+        }
+
+        public static Transform SewingMachine(Transform parent, string name, Vector3 pos, float yaw)
+        {
+            Transform root = Child(parent, name, pos, yaw);
+            Box("Base", root, new Vector3(0f, 0.05f, 0f), new Vector3(0.45f, 0.1f, 0.22f), MaterialLibrary.Black, false);
+            Box("Columna", root, new Vector3(0.15f, 0.2f, 0f), new Vector3(0.1f, 0.25f, 0.14f), MaterialLibrary.Black, false);
+            Box("Brazo", root, new Vector3(0f, 0.3f, 0f), new Vector3(0.4f, 0.08f, 0.12f), MaterialLibrary.Black, false);
+            Box("Detalle", root, new Vector3(0f, 0.3f, 0.065f), new Vector3(0.3f, 0.02f, 0.01f), MaterialLibrary.Gold, false);
+            Cylinder("Aguja", root, new Vector3(-0.16f, 0.2f, 0f), new Vector3(0.015f, 0.06f, 0.015f), MaterialLibrary.Metal, false);
+            return root;
+        }
+
+        /// <summary>Alberca de pelotas con bordes acolchados (pelotas decorativas, sin física).</summary>
+        public static Transform BallPit(Transform parent, string name, Vector3 center, float size)
+        {
+            Transform root = Child(parent, name, center);
+            float half = size * 0.5f;
+            Material[] pads = MaterialLibrary.ToyPlastics;
+            Box("Borde_N", root, new Vector3(0f, 0.3f, half), new Vector3(size + 0.3f, 0.6f, 0.3f), pads[0]);
+            Box("Borde_S", root, new Vector3(0f, 0.3f, -half), new Vector3(size + 0.3f, 0.6f, 0.3f), pads[1]);
+            Box("Borde_O", root, new Vector3(-half, 0.3f, 0f), new Vector3(0.3f, 0.6f, size), pads[2]);
+            Box("Borde_E", root, new Vector3(half, 0.3f, 0f), new Vector3(0.3f, 0.6f, size), pads[3]);
+            Transform balls = Child(root, "Pelotas");
+            for (int i = 0; i < 90; i++)
+            {
+                var p = new Vector3(Range(-half + 0.3f, half - 0.3f), Range(0.1f, 0.42f), Range(-half + 0.3f, half - 0.3f));
+                Sphere("Pelota_" + i, balls, p, Vector3.one * 0.22f, Pick(pads), false);
+            }
+            return root;
+        }
+
+        /// <summary>Resbaladilla de plástico: escalera, plataforma y rampa.</summary>
+        public static Transform Slide(Transform parent, string name, Vector3 pos, float yaw)
+        {
+            Transform root = Child(parent, name, pos, yaw);
+            Material[] colors = MaterialLibrary.ToyPlastics;
+            Box("Plataforma", root, new Vector3(0f, 1.5f, 0f), new Vector3(1f, 0.1f, 1f), colors[1]);
+            for (int i = 0; i < 4; i++)
+            {
+                float x = i % 2 == 0 ? -0.45f : 0.45f;
+                float z = i < 2 ? -0.45f : 0.45f;
+                Cylinder("Poste_" + i, root, new Vector3(x, 0.75f, z), new Vector3(0.08f, 0.75f, 0.08f), colors[2], i == 0);
+            }
+            for (int s = 0; s < 5; s++)
+            {
+                Box("Escalon_" + s, root, new Vector3(0f, 0.3f * (s + 1) - 0.1f, -0.65f - (4 - s) * 0.12f), new Vector3(0.8f, 0.05f, 0.15f), colors[0], false);
+            }
+            GameObject ramp = Box("Rampa", root, new Vector3(0f, 0.75f, 1.55f), new Vector3(0.9f, 0.06f, 2.3f), colors[0]);
+            Rotate(ramp, 40f, 0f, 0f);
+            return root;
+        }
+
+        /// <summary>Bloque gigante con letra (decoración de la sala de juegos).</summary>
+        public static Transform LetterBlock(Transform parent, string name, Vector3 pos, float yaw, float size)
+        {
+            Transform root = Child(parent, name, pos, yaw);
+            Box("Bloque", root, new Vector3(0f, size * 0.5f, 0f), Vector3.one * size, Pick(MaterialLibrary.ToyPlastics));
+            Box("Marco", root, new Vector3(0f, size * 0.5f, size * 0.5f + 0.005f), new Vector3(size * 0.7f, size * 0.7f, 0.01f), MaterialLibrary.White, false);
+            return root;
+        }
+
+        public static Transform Desk(Transform parent, string name, Vector3 pos, float yaw)
+        {
+            Transform root = Child(parent, name, pos, yaw);
+            GameObject top = Box("Cubierta", root, new Vector3(0f, 0.8f, 0f), new Vector3(2.6f, 0.08f, 1.3f), MaterialLibrary.DarkWood);
+            Tile(top, AutoTiling.Mode.Floor, 1.5f);
+            Box("Cajonera_Izq", root, new Vector3(-1f, 0.38f, 0f), new Vector3(0.6f, 0.76f, 1.2f), MaterialLibrary.Wood);
+            Box("Cajonera_Der", root, new Vector3(1f, 0.38f, 0f), new Vector3(0.6f, 0.76f, 1.2f), MaterialLibrary.Wood);
+            // La lista de Santa: pila de papeles y un rollo larguísimo
+            Box("Papeles", root, new Vector3(-0.6f, 0.86f, 0.1f), new Vector3(0.35f, 0.05f, 0.45f), MaterialLibrary.White, false);
+            GameObject scroll = Cylinder("Lista", root, new Vector3(0.4f, 0.88f, -0.2f), new Vector3(0.1f, 0.35f, 0.1f), MaterialLibrary.White, false);
+            Rotate(scroll, 0f, 0f, 90f);
+            Box("ListaColgando", root, new Vector3(0.4f, 0.45f, -0.66f), new Vector3(0.6f, 0.8f, 0.01f), MaterialLibrary.White, false);
+            Cylinder("Vela", root, new Vector3(-1.1f, 0.94f, -0.3f), new Vector3(0.06f, 0.1f, 0.06f), MaterialLibrary.White, false);
+            Sphere("Llama", root, new Vector3(-1.1f, 1.08f, -0.3f), new Vector3(0.04f, 0.07f, 0.04f), MaterialLibrary.Fire, false);
+            return root;
+        }
+
+        public static Transform Armchair(Transform parent, string name, Vector3 pos, float yaw)
+        {
+            Transform root = Child(parent, name, pos, yaw);
+            Material red = MaterialLibrary.NutcrackerRed;
+            Box("Asiento", root, new Vector3(0f, 0.3f, 0f), new Vector3(0.9f, 0.6f, 0.9f), red);
+            Box("Respaldo", root, new Vector3(0f, 0.85f, -0.4f), new Vector3(0.9f, 1.1f, 0.15f), red, false);
+            Box("Brazo_Izq", root, new Vector3(-0.45f, 0.65f, 0f), new Vector3(0.15f, 0.3f, 0.9f), red, false);
+            Box("Brazo_Der", root, new Vector3(0.45f, 0.65f, 0f), new Vector3(0.15f, 0.3f, 0.9f), red, false);
+            return root;
+        }
+
+        /// <summary>Chimenea con fuego emisivo; la luz parpadeante la agrega el constructor.</summary>
+        public static Transform Fireplace(Transform parent, string name, Vector3 pos, float yaw)
+        {
+            Transform root = Child(parent, name, pos, yaw);
+            Box("Marco_Izq", root, new Vector3(-1f, 0.7f, 0f), new Vector3(0.4f, 1.4f, 0.6f), MaterialLibrary.DarkWood);
+            Box("Marco_Der", root, new Vector3(1f, 0.7f, 0f), new Vector3(0.4f, 1.4f, 0.6f), MaterialLibrary.DarkWood);
+            Box("Repisa", root, new Vector3(0f, 1.45f, 0.05f), new Vector3(2.6f, 0.12f, 0.75f), MaterialLibrary.Wood);
+            Box("Hueco", root, new Vector3(0f, 0.6f, -0.2f), new Vector3(1.6f, 1.2f, 0.2f), MaterialLibrary.Black, false);
+            Box("Tronco_1", root, new Vector3(0f, 0.1f, 0f), new Vector3(1f, 0.12f, 0.15f), MaterialLibrary.Wood, false);
+            for (int i = 0; i < 5; i++)
+            {
+                Sphere("Llama_" + i, root, new Vector3(-0.4f + i * 0.2f, 0.3f + (i % 2) * 0.1f, 0f), new Vector3(0.2f, 0.4f, 0.2f), MaterialLibrary.Fire, false);
+            }
+            // Calcetines navideños colgados de la repisa
+            for (int i = 0; i < 3; i++)
+            {
+                Box("Calcetin_" + i, root, new Vector3(-0.8f + i * 0.8f, 1.15f, 0.45f), new Vector3(0.2f, 0.4f, 0.06f),
+                    i == 1 ? MaterialLibrary.White : MaterialLibrary.NutcrackerRed, false);
+            }
+            return root;
+        }
+
+        public static Transform SantaSack(Transform parent, string name, Vector3 pos)
+        {
+            Transform root = Child(parent, name, pos);
+            Sphere("Costal", root, new Vector3(0f, 0.55f, 0f), new Vector3(1.1f, 1.1f, 1f), MaterialLibrary.Sack);
+            Cylinder("Amarre", root, new Vector3(0f, 1.1f, 0f), new Vector3(0.3f, 0.08f, 0.3f), MaterialLibrary.Gold, false);
+            Gift(root, "Asoma_1", new Vector3(0.1f, 1.05f, 0f), new Vector3(0.3f, 0.3f, 0.3f), 20f, false);
+            TeddyBear(root, "Asoma_2", new Vector3(-0.15f, 1.0f, 0.05f), 0.4f, 30f, MaterialLibrary.FurLight);
+            return root;
+        }
     }
 }

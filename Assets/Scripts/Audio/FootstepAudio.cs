@@ -1,3 +1,4 @@
+using HauntedFactory.Core;
 using HauntedFactory.Player;
 using UnityEngine;
 
@@ -35,9 +36,10 @@ namespace HauntedFactory.Audio
             if (movement != null) movement.Landed -= OnLanded;
         }
 
-        /// <summary>Golpe más fuerte al caer de un salto.</summary>
+        /// <summary>Golpe más fuerte al caer de un salto (hace ruido que oyen los juguetes).</summary>
         private void OnLanded()
         {
+            NoiseSystem.Emit(transform.position, 7f);
             if (steps == null || steps.Length == 0) return;
             source.pitch = Random.Range(0.75f, 0.85f);
             source.PlayOneShot(steps[Random.Range(0, steps.Length)], runVolume * 1.2f);

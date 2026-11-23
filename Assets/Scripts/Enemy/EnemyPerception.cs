@@ -1,3 +1,5 @@
+using System;
+using HauntedFactory.Core;
 using HauntedFactory.Player;
 using UnityEngine;
 
@@ -41,6 +43,13 @@ namespace HauntedFactory.Enemy
         private Transform playerEye;
         private PlayerMovement playerMovement;
         private Flashlight playerFlashlight;
+        private PlayerHiding playerHiding;
+
+        /// <summary>Se dispara al oír un ruido (pelota, salto...) con su posición.</summary>
+        public event Action<Vector3> NoiseHeard;
+
+        /// <summary>True si el jugador está escondido (no se le puede detectar ni atrapar).</summary>
+        public bool PlayerIsHidden => playerHiding != null && playerHiding.IsHidden;
 
         public Transform Player => player;
 
@@ -59,6 +68,7 @@ namespace HauntedFactory.Enemy
             player = go.transform;
             playerMovement = go.GetComponent<PlayerMovement>();
             playerFlashlight = go.GetComponentInChildren<Flashlight>();
+            playerHiding = go.GetComponent<PlayerHiding>();
             Camera cam = go.GetComponentInChildren<Camera>();
             playerEye = cam != null ? cam.transform : player;
         }
@@ -88,11 +98,28 @@ namespace HauntedFactory.Enemy
         /// <summary>True si este frame ve u oye al jugador. Actualiza LastKnownPosition.</summary>
         public bool CanDetectPlayer()
         {
-            if (player == null) return false;
+            if (player == null || PlayerIsHidden) return false;
 
             bool detected = CanSeePlayer() || CanHearPlayer();
             if (detected) LastKnownPosition = player.position;
             return detected;
+        }
+
+        private void OnEnable()
+        {
+            NoiseSystem.NoiseMade += OnNoise;
+        }
+
+        private void OnDisable()
+        {
+            NoiseSystem.NoiseMade -= OnNoise;
+        }
+
+        private void OnNoise(Vector3 position, float radius)
+        {
+            if ((position - transform.position).sqrMagnitude > radius * radius) return;
+            LastKnownPosition = position;
+            NoiseHeard?.Invoke(position);
         }
 
         private float CurrentViewDistance =>

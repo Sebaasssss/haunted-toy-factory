@@ -22,6 +22,9 @@ namespace HauntedFactory.Enemy
     [RequireComponent(typeof(EnemyPerception))]
     public class EnemyAI : MonoBehaviour
     {
+        [Tooltip("Nombre para la pantalla de derrota, p. ej. \"El Cascanueces\".")]
+        [SerializeField] private string displayName = "Un juguete";
+
         [Header("Ruta de patrulla")]
         [SerializeField] private Transform[] waypoints;
         [SerializeField] private float waypointWaitTime = 1.5f;
@@ -78,6 +81,19 @@ namespace HauntedFactory.Enemy
             }
             SetState(EnemyState.Patrol);
             GoToWaypoint(0);
+            perception.NoiseHeard += OnNoiseHeard;
+        }
+
+        private void OnDestroy()
+        {
+            if (perception != null) perception.NoiseHeard -= OnNoiseHeard;
+        }
+
+        /// <summary>Un ruido cercano: si no está persiguiendo, va a investigar.</summary>
+        private void OnNoiseHeard(Vector3 position)
+        {
+            if (state == EnemyState.Chase || !agent.isOnNavMesh) return;
+            SetState(EnemyState.Search);
         }
 
         private void Update()
@@ -227,7 +243,7 @@ namespace HauntedFactory.Enemy
         private void CheckCatch()
         {
             Transform player = perception.Player;
-            if (player == null) return;
+            if (player == null || perception.PlayerIsHidden) return;
 
             Vector3 a = transform.position;
             Vector3 b = player.position;
@@ -237,7 +253,7 @@ namespace HauntedFactory.Enemy
 
             if ((a - b).sqrMagnitude <= catchDistance * catchDistance && GameManager.Instance != null)
             {
-                GameManager.Instance.Lose();
+                GameManager.Instance.Lose(transform, displayName);
             }
         }
 

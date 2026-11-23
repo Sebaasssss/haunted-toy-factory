@@ -47,6 +47,17 @@ namespace HauntedFactory.Core
         public event Action<string> MessageShown;
         public event Action GameWon;
         public event Action GameLost;
+        /// <summary>Se dispara al recoger cada llave (para los sustos).</summary>
+        public event Action KeyCollected;
+        /// <summary>Se dispara al recoger cada pila.</summary>
+        public event Action BatteryCollected;
+
+        /// <summary>Pilas recogidas en la partida (estadística).</summary>
+        public int BatteriesCollected { get; private set; }
+        /// <summary>Juguete que atrapó al jugador (null si no aplica).</summary>
+        public Transform Catcher { get; private set; }
+        /// <summary>Nombre del juguete que atrapó al jugador, p. ej. "El Cascanueces".</summary>
+        public string CatcherName { get; private set; }
 
         private void Awake()
         {
@@ -95,6 +106,7 @@ namespace HauntedFactory.Core
             keysCollected = Mathf.Min(keysCollected + 1, requiredKeys);
             PlaySound(keySound);
             KeysChanged?.Invoke(keysCollected, requiredKeys);
+            KeyCollected?.Invoke();
 
             ShowMessage(HasAllKeys
                 ? "¡Tienes todas las llaves! Corre a la puerta de salida."
@@ -118,10 +130,23 @@ namespace HauntedFactory.Core
             GameWon?.Invoke();
         }
 
-        /// <summary>Un juguete poseído atrapó al jugador.</summary>
-        public void Lose()
+        /// <summary>Lo llaman las pilas al recogerse.</summary>
+        public void NotifyBatteryCollected()
         {
             if (State != GameState.Playing) return;
+            BatteriesCollected++;
+            BatteryCollected?.Invoke();
+        }
+
+        /// <summary>Un juguete poseído atrapó al jugador.</summary>
+        public void Lose() => Lose(null, null);
+
+        /// <summary>Un juguete poseído atrapó al jugador (con quién fue, para la pantalla final).</summary>
+        public void Lose(Transform catcher, string catcherName)
+        {
+            if (State != GameState.Playing) return;
+            Catcher = catcher;
+            CatcherName = catcherName;
             State = GameState.Lost;
             PlaySound(loseSound);
             EndGame();

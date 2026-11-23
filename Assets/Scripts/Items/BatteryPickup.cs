@@ -1,3 +1,4 @@
+using HauntedFactory.Core;
 using HauntedFactory.Player;
 using UnityEngine;
 
@@ -26,6 +27,8 @@ namespace HauntedFactory.Items
 
             Flashlight flashlight = other.GetComponentInChildren<Flashlight>();
             if (flashlight == null || !flashlight.AddBattery(amount)) return;
+
+            if (GameManager.Instance != null) GameManager.Instance.NotifyBatteryCollected();
 
             if (pickupSound != null)
             {

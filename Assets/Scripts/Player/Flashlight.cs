@@ -16,7 +16,7 @@ namespace HauntedFactory.Player
         [SerializeField] private float maxBattery = 100f;
         [SerializeField] private float startBattery = 100f;
         [Tooltip("Unidades de batería que se gastan por segundo con la linterna encendida.")]
-        [SerializeField] private float drainPerSecond = 1.2f;
+        [SerializeField] private float drainPerSecond = 2.2f;
         [SerializeField] private bool startOn = true;
 
         [Header("Parpadeo con batería baja")]
@@ -97,6 +97,12 @@ namespace HauntedFactory.Player
             PlayToggleSound();
             if (!isOn && battery <= 0f) return;
             SetOn(!isOn);
+        }
+
+        /// <summary>Apaga la linterna (por ejemplo al esconderse).</summary>
+        public void TurnOff()
+        {
+            if (isOn) SetOn(false);
         }
 
         /// <summary>

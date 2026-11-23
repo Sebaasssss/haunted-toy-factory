@@ -208,6 +208,7 @@ namespace HauntedFactory.EditorTools
                                  "Shift  —  Correr\n" +
                                  "Espacio  —  Saltar\n" +
                                  "F  —  Linterna\n" +
+                                 "E  —  Esconderse\n" +
                                  "Esc  —  Pausa",
                                  34, UIFactory.Cream, TextAnchor.UpperLeft, UIFactory.Center, UIFactory.Center,
                                  new Vector2(-330f, 0f), new Vector2(520f, 420f));
@@ -215,8 +216,9 @@ namespace HauntedFactory.EditorTools
                                  "CONSEJOS\n\n" +
                                  "• Los juguetes se congelan mientras los iluminas con la linterna.\n" +
                                  "• Pero la luz los atrae: te ven desde más lejos.\n" +
-                                 "• Recoge pilas verdes: sin batería estás a ciegas.\n" +
-                                 "• Corriendo eres más rápido que ellos, pero te oyen.\n" +
+                                 "• Alumbra los rincones: las llaves y pilas brillan con la luz.\n" +
+                                 "• Escóndete en armarios y regalos gigantes (E).\n" +
+                                 "• Las pelotas hacen ruido... y el ruido los atrae.\n" +
                                  "• Si oyes un tic-tac... hay un juguete cerca.",
                                  26, UIFactory.Cream, TextAnchor.UpperLeft, UIFactory.Center, UIFactory.Center,
                                  new Vector2(280f, 0f), new Vector2(620f, 420f));

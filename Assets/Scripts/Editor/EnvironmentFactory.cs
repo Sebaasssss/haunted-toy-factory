@@ -155,7 +155,24 @@ namespace HauntedFactory.EditorTools
         /// opuesto a su eje +Z: para un letrero pegado a una pared, +Z apunta a la pared.
         /// </summary>
         public static void NeonSign(Transform parent, string name, Vector3 worldPos, float yaw, string text, Color color,
-                                    int fontSize, float widthMeters, bool flicker)
+                                    int fontSize, float widthMeters, bool flicker, bool doubleSided = false)
+        {
+            // Tablero oscuro detrás del texto (tapa la cara trasera del canvas)
+            Transform board = PropFactory.Child(parent, name + "_Tablero");
+            board.position = worldPos;
+            board.rotation = Quaternion.Euler(0f, yaw, 0f);
+            PropFactory.Box("Tablero", board, Vector3.zero, new Vector3(widthMeters + 0.2f, 0.75f, 0.03f), MaterialLibrary.Black, false, false);
+
+            CreateNeonCanvas(parent, name, worldPos + board.rotation * Vector3.back * 0.03f, yaw, text, color, fontSize, widthMeters, flicker);
+            if (doubleSided)
+            {
+                CreateNeonCanvas(parent, name + "_Reverso", worldPos + board.rotation * Vector3.forward * 0.03f, yaw + 180f,
+                                 text, color, fontSize, widthMeters, flicker);
+            }
+        }
+
+        private static void CreateNeonCanvas(Transform parent, string name, Vector3 worldPos, float yaw, string text, Color color,
+                                             int fontSize, float widthMeters, bool flicker)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
