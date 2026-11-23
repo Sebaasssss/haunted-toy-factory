@@ -1,12 +1,15 @@
 using System.Collections.Generic;
 using System.IO;
 using HauntedFactory.Core;
+using HauntedFactory.Enemy;
 using HauntedFactory.Items;
 using HauntedFactory.Player;
 using HauntedFactory.World;
 using UnityEditor;
+using Unity.AI.Navigation;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.Rendering;
 
 namespace HauntedFactory.EditorTools
@@ -31,6 +34,8 @@ namespace HauntedFactory.EditorTools
     {
         private const string ScenePath = "Assets/Scenes/Factory.unity";
         private const string MaterialsFolder = "Assets/Materials";
+        private const string NavMeshFolder = "Assets/Scenes/Factory";
+        private const string NavMeshPath = NavMeshFolder + "/NavMesh-Factory.asset";
         private const float WallHeight = 4f;
         private const float WallThickness = 0.3f;
         private const float DoorWidth = 4f;
@@ -56,6 +61,7 @@ namespace HauntedFactory.EditorTools
         private static Material matFloor, matWall, matCeiling, matWood, matMetal, matConveyor;
         private static Material matGiftRed, matGiftGreen, matTree, matStar, matBattery, matSnow, matExitSign;
         private static Material matKey, matDoor;
+        private static Material matToyBody, matToySkin, matToyHat, matToyEyes;
 
         [MenuItem("Tools/Haunted Factory/Construir escena de la fábrica")]
         public static void BuildScene()
@@ -66,7 +72,7 @@ namespace HauntedFactory.EditorTools
             if (File.Exists(ScenePath) &&
                 !EditorUtility.DisplayDialog(
                     "Reconstruir la fábrica",
-                    "Ya existe " + ScenePath + ".\nSe va a regenerar y se perderán los cambios hechos a mano en esa escena.\n\n¿Continuar?",
+                    "Ya existe " + ScenePath + ".\nSe va a regenerar (escena y NavMesh) y se perderán los cambios hechos a mano en esa escena.\n\n¿Continuar?",
                     "Sobrescribir", "Cancelar"))
             {
                 return;
@@ -84,6 +90,8 @@ namespace HauntedFactory.EditorTools
             BuildBatteries();
             BuildKeys();
             BuildExitDoor(level);
+            BakeNavMesh(level.gameObject);
+            BuildEnemies();
             GameObject player = BuildPlayer(new Vector3(0f, 0.05f, 3f));
             BuildGameManager(player);
 
@@ -114,6 +122,10 @@ namespace HauntedFactory.EditorTools
             matExitSign = GetMaterial("M_LetreroSalida", new Color(0.8f, 0.05f, 0.05f), 0.3f, emission: new Color(2.5f, 0.1f, 0.1f));
             matKey = GetMaterial("M_Llave", new Color(1f, 0.78f, 0.2f), 0.8f, metallic: 1f, emission: new Color(1.2f, 0.9f, 0.2f));
             matDoor = GetMaterial("M_PuertaSalida", new Color(0.35f, 0.05f, 0.05f), 0.5f, metallic: 0.6f);
+            matToyBody = GetMaterial("M_Juguete_Cuerpo", new Color(0.5f, 0.04f, 0.06f), 0.5f);
+            matToySkin = GetMaterial("M_Juguete_Cara", new Color(0.85f, 0.75f, 0.65f), 0.7f);
+            matToyHat = GetMaterial("M_Juguete_Sombrero", new Color(0.05f, 0.05f, 0.05f), 0.4f);
+            matToyEyes = GetMaterial("M_Juguete_Ojos", Color.red, 0.9f, emission: new Color(4f, 0.1f, 0.1f));
         }
 
         /// <summary>
@@ -562,6 +574,148 @@ namespace HauntedFactory.EditorTools
             so.FindProperty("playerLook").objectReferenceValue = player.GetComponent<PlayerLook>();
             so.FindProperty("flashlight").objectReferenceValue = player.GetComponentInChildren<Flashlight>();
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // ------------------------------------------------------------------
+        // NavMesh y enemigos (Fase 3)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Hornea el NavMesh con un NavMeshSurface sobre el objeto "Nivel"
+        /// (solo salas, utilería y puerta; no jugador, pilas ni llaves)
+        /// y lo guarda como asset para que la escena lo conserve.
+        /// </summary>
+        private static void BakeNavMesh(GameObject levelRoot)
+        {
+            var surface = levelRoot.AddComponent<NavMeshSurface>();
+            surface.collectObjects = CollectObjects.Children;
+            surface.useGeometry = NavMeshCollectGeometry.RenderMeshes;
+            surface.BuildNavMesh();
+
+            if (surface.navMeshData == null)
+            {
+                Debug.LogError("[Haunted Factory] No se pudo hornear el NavMesh.");
+                return;
+            }
+
+            EnsureFolder(NavMeshFolder);
+            // El NavMesh es un archivo generado: se reemplaza en cada reconstrucción
+            if (AssetDatabase.LoadAssetAtPath<NavMeshData>(NavMeshPath) != null)
+            {
+                AssetDatabase.DeleteAsset(NavMeshPath);
+            }
+            AssetDatabase.CreateAsset(surface.navMeshData, NavMeshPath);
+        }
+
+        private static void BuildEnemies()
+        {
+            Transform parent = new GameObject("Enemigos").transform;
+
+            // Juguete 1: recorre la línea de ensamblaje y a veces baja por el pasillo norte
+            CreateToy(parent, "JuguetePoseido_Ensamblaje", new[]
+            {
+                new Vector3(0f, 0f, 40f),
+                new Vector3(11f, 0f, 40f),
+                new Vector3(6f, 0f, 48.5f),
+                new Vector3(-6f, 0f, 48.5f),
+                new Vector3(-11f, 0f, 40f),
+                new Vector3(0f, 0f, 22f),
+            });
+
+            // Juguete 2: vigila el almacén y el pasillo oeste
+            CreateToy(parent, "JuguetePoseido_Almacen", new[]
+            {
+                new Vector3(-38f, 0f, 40f),
+                new Vector3(-40.5f, 0f, 34f),
+                new Vector3(-45f, 0f, 41f),
+                new Vector3(-31f, 0f, 48f),
+                new Vector3(-22f, 0f, 40f),
+            });
+        }
+
+        /// <summary>
+        /// Crea un juguete poseído (cascanueces de primitivas) con NavMeshAgent,
+        /// percepción, IA y su ruta de patrulla. Empieza en el primer waypoint.
+        /// </summary>
+        private static void CreateToy(Transform parent, string name, Vector3[] route)
+        {
+            var toy = new GameObject(name);
+            toy.transform.SetParent(parent, false);
+            toy.transform.position = route[0];
+
+            var col = toy.AddComponent<CapsuleCollider>();
+            col.center = new Vector3(0f, 0.8f, 0f);
+            col.height = 1.6f;
+            col.radius = 0.4f;
+
+            var agent = toy.AddComponent<NavMeshAgent>();
+            agent.height = 1.6f;
+            agent.radius = 0.4f;
+            agent.angularSpeed = 360f;
+            agent.acceleration = 12f;
+            agent.stoppingDistance = 0.3f;
+            agent.autoBraking = true;
+
+            toy.AddComponent<EnemyPerception>();
+            EnemyAI ai = toy.AddComponent<EnemyAI>();
+
+            BuildToyVisual(toy.transform);
+
+            // Waypoints agrupados en un objeto aparte para poder moverlos en el editor
+            Transform routeRoot = Child(parent, "Ruta_" + name);
+            var points = new Transform[route.Length];
+            for (int i = 0; i < route.Length; i++)
+            {
+                Transform wp = Child(routeRoot, "Waypoint_" + i);
+                wp.position = route[i];
+                points[i] = wp;
+            }
+
+            var so = new SerializedObject(ai);
+            SerializedProperty prop = so.FindProperty("waypoints");
+            prop.arraySize = points.Length;
+            for (int i = 0; i < points.Length; i++)
+            {
+                prop.GetArrayElementAtIndex(i).objectReferenceValue = points[i];
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>Cascanueces poseído de primitivas (reemplazable por un modelo).</summary>
+        private static void BuildToyVisual(Transform toy)
+        {
+            Transform visual = Child(toy, "Visual");
+            var parts = new List<GameObject>
+            {
+                Primitive(PrimitiveType.Capsule, "Cuerpo", visual, new Vector3(0f, 0.65f, 0f), new Vector3(0.7f, 0.6f, 0.5f), matToyBody, false),
+                Primitive(PrimitiveType.Sphere, "Cabeza", visual, new Vector3(0f, 1.35f, 0f), new Vector3(0.45f, 0.5f, 0.45f), matToySkin, false),
+                Primitive(PrimitiveType.Cylinder, "Sombrero", visual, new Vector3(0f, 1.78f, 0f), new Vector3(0.42f, 0.22f, 0.42f), matToyHat, false),
+                Primitive(PrimitiveType.Cube, "Mandibula", visual, new Vector3(0f, 1.18f, 0.17f), new Vector3(0.25f, 0.08f, 0.12f), matToyHat, false),
+                Primitive(PrimitiveType.Sphere, "Ojo_Izq", visual, new Vector3(-0.09f, 1.4f, 0.2f), Vector3.one * 0.08f, matToyEyes, false),
+                Primitive(PrimitiveType.Sphere, "Ojo_Der", visual, new Vector3(0.09f, 1.4f, 0.2f), Vector3.one * 0.08f, matToyEyes, false),
+                Primitive(PrimitiveType.Cube, "Brazo_Izq", visual, new Vector3(-0.42f, 0.8f, 0.1f), new Vector3(0.12f, 0.6f, 0.12f), matToyBody, false),
+                Primitive(PrimitiveType.Cube, "Brazo_Der", visual, new Vector3(0.42f, 0.8f, 0.1f), new Vector3(0.12f, 0.6f, 0.12f), matToyBody, false),
+            };
+            // Los brazos estirados hacia adelante, como queriendo atrapar
+            parts[6].transform.localRotation = Quaternion.Euler(-70f, 0f, 0f);
+            parts[7].transform.localRotation = Quaternion.Euler(-70f, 0f, 0f);
+
+            // Solo el CapsuleCollider de la raíz debe chocar
+            foreach (GameObject part in parts)
+            {
+                Object.DestroyImmediate(part.GetComponent<Collider>());
+            }
+
+            // Brillo rojo de los ojos
+            var glow = new GameObject("BrilloOjos");
+            glow.transform.SetParent(visual, false);
+            glow.transform.localPosition = new Vector3(0f, 1.4f, 0.35f);
+            var light = glow.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.1f, 0.05f);
+            light.intensity = 1.5f;
+            light.range = 3f;
+            light.shadows = LightShadows.None;
         }
 
         /// <summary>Agrega la escena a Build Settings (sin quitar las que ya estaban) para poder reiniciarla.</summary>
