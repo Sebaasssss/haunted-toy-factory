@@ -1,0 +1,149 @@
+using System;
+using HauntedFactory.Player;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+
+namespace HauntedFactory.Core
+{
+    /// <summary>Estados posibles de la partida.</summary>
+    public enum GameState { Playing, Won, Lost }
+
+    /// <summary>
+    /// Controla el estado de la partida: llaves recolectadas, victoria y derrota.
+    /// Hay una sola instancia por escena (GameManager.Instance).
+    /// La UI (Fase 4) se suscribe a sus eventos para mostrar HUD y pantallas finales.
+    /// </summary>
+    public class GameManager : MonoBehaviour
+    {
+        public static GameManager Instance { get; private set; }
+
+        [Header("Objetivo")]
+        [SerializeField] private int requiredKeys = 3;
+
+        [Header("Referencias del jugador (las asigna el constructor de escena)")]
+        [SerializeField] private PlayerMovement playerMovement;
+        [SerializeField] private PlayerLook playerLook;
+        [SerializeField] private Flashlight flashlight;
+
+        [Header("Sonidos (opcionales)")]
+        [SerializeField] private AudioClip keySound;
+        [SerializeField] private AudioClip winSound;
+        [SerializeField] private AudioClip loseSound;
+
+        private int keysCollected;
+
+        public GameState State { get; private set; } = GameState.Playing;
+        public int KeysCollected => keysCollected;
+        public int RequiredKeys => requiredKeys;
+        public bool HasAllKeys => keysCollected >= requiredKeys;
+
+        /// <summary>(llaves actuales, llaves necesarias)</summary>
+        public event Action<int, int> KeysChanged;
+        /// <summary>Mensaje corto para mostrar en pantalla (puerta cerrada, etc.).</summary>
+        public event Action<string> MessageShown;
+        public event Action GameWon;
+        public event Action GameLost;
+
+        private void Awake()
+        {
+            if (Instance != null && Instance != this)
+            {
+                Debug.LogWarning("[GameManager] Había más de un GameManager en la escena; se destruye el duplicado.");
+                Destroy(gameObject);
+                return;
+            }
+            Instance = this;
+            Time.timeScale = 1f;
+        }
+
+        private void Start()
+        {
+            KeysChanged?.Invoke(keysCollected, requiredKeys);
+            ShowMessage("Encuentra las " + requiredKeys + " llaves y escapa de la fábrica.");
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
+
+        private void Update()
+        {
+            // Temporal hasta la Fase 4: R reinicia cuando la partida terminó
+            Keyboard kb = Keyboard.current;
+            if (State != GameState.Playing && kb != null && kb.rKey.wasPressedThisFrame)
+            {
+                RestartLevel();
+            }
+        }
+
+        /// <summary>Suma una llave. Lo llaman las llaves recolectables.</summary>
+        public void AddKey()
+        {
+            if (State != GameState.Playing) return;
+
+            keysCollected = Mathf.Min(keysCollected + 1, requiredKeys);
+            PlaySound(keySound);
+            KeysChanged?.Invoke(keysCollected, requiredKeys);
+
+            ShowMessage(HasAllKeys
+                ? "¡Tienes todas las llaves! Corre a la puerta de salida."
+                : "Llave " + keysCollected + " de " + requiredKeys);
+        }
+
+        public void ShowMessage(string message)
+        {
+            Debug.Log("[Juego] " + message);
+            MessageShown?.Invoke(message);
+        }
+
+        /// <summary>El jugador escapó por la salida.</summary>
+        public void Win()
+        {
+            if (State != GameState.Playing) return;
+            State = GameState.Won;
+            PlaySound(winSound);
+            EndGame();
+            Debug.Log("[Juego] ¡VICTORIA! El elfo escapó. (R para reiniciar)");
+            GameWon?.Invoke();
+        }
+
+        /// <summary>Un juguete poseído atrapó al jugador.</summary>
+        public void Lose()
+        {
+            if (State != GameState.Playing) return;
+            State = GameState.Lost;
+            PlaySound(loseSound);
+            EndGame();
+            Debug.Log("[Juego] GAME OVER: te atraparon. (R para reiniciar)");
+            GameLost?.Invoke();
+        }
+
+        /// <summary>Recarga la escena actual desde cero.</summary>
+        public void RestartLevel()
+        {
+            Time.timeScale = 1f;
+            Scene current = SceneManager.GetActiveScene();
+            if (current.buildIndex >= 0) SceneManager.LoadScene(current.buildIndex);
+            else SceneManager.LoadScene(current.name);
+        }
+
+        /// <summary>Bloquea al jugador, libera el cursor y congela el juego.</summary>
+        private void EndGame()
+        {
+            if (playerMovement != null) playerMovement.CanMove = false;
+            if (playerLook != null) playerLook.CanLook = false;
+            if (flashlight != null) flashlight.CanUseInput = false;
+            PlayerLook.SetCursorLocked(false);
+            Time.timeScale = 0f;
+        }
+
+        private void PlaySound(AudioClip clip)
+        {
+            if (clip == null) return;
+            Vector3 pos = playerMovement != null ? playerMovement.transform.position : transform.position;
+            AudioSource.PlayClipAtPoint(clip, pos);
+        }
+    }
+}

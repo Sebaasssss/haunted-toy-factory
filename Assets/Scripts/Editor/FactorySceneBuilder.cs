@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.IO;
+using HauntedFactory.Core;
 using HauntedFactory.Items;
 using HauntedFactory.Player;
+using HauntedFactory.World;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -53,6 +55,7 @@ namespace HauntedFactory.EditorTools
         // Materiales compartidos
         private static Material matFloor, matWall, matCeiling, matWood, matMetal, matConveyor;
         private static Material matGiftRed, matGiftGreen, matTree, matStar, matBattery, matSnow, matExitSign;
+        private static Material matKey, matDoor;
 
         [MenuItem("Tools/Haunted Factory/Construir escena de la fábrica")]
         public static void BuildScene()
@@ -79,9 +82,13 @@ namespace HauntedFactory.EditorTools
             BuildProps(level);
             BuildWorkLights(level);
             BuildBatteries();
-            BuildPlayer(new Vector3(0f, 0.05f, 3f));
+            BuildKeys();
+            BuildExitDoor(level);
+            GameObject player = BuildPlayer(new Vector3(0f, 0.05f, 3f));
+            BuildGameManager(player);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
+            AddSceneToBuildSettings(ScenePath);
             AssetDatabase.SaveAssets();
             Debug.Log("[Haunted Factory] Escena construida y guardada en " + ScenePath);
         }
@@ -105,6 +112,8 @@ namespace HauntedFactory.EditorTools
             matBattery = GetMaterial("M_Pila", new Color(0.2f, 0.9f, 0.3f), 0.6f, emission: new Color(0.3f, 1.5f, 0.4f));
             matSnow = GetMaterial("M_Nieve", new Color(0.85f, 0.88f, 0.95f), 0.3f);
             matExitSign = GetMaterial("M_LetreroSalida", new Color(0.8f, 0.05f, 0.05f), 0.3f, emission: new Color(2.5f, 0.1f, 0.1f));
+            matKey = GetMaterial("M_Llave", new Color(1f, 0.78f, 0.2f), 0.8f, metallic: 1f, emission: new Color(1.2f, 0.9f, 0.2f));
+            matDoor = GetMaterial("M_PuertaSalida", new Color(0.35f, 0.05f, 0.05f), 0.5f, metallic: 0.6f);
         }
 
         /// <summary>
@@ -408,7 +417,7 @@ namespace HauntedFactory.EditorTools
         // Jugador (elfo) con cámara y linterna
         // ------------------------------------------------------------------
 
-        private static void BuildPlayer(Vector3 spawn)
+        private static GameObject BuildPlayer(Vector3 spawn)
         {
             var player = new GameObject("Player");
             player.tag = "Player";
@@ -454,6 +463,117 @@ namespace HauntedFactory.EditorTools
             var so = new SerializedObject(look);
             so.FindProperty("cameraRoot").objectReferenceValue = cameraRoot;
             so.ApplyModifiedPropertiesWithoutUndo();
+            return player;
+        }
+
+        // ------------------------------------------------------------------
+        // Llaves, puerta de salida y GameManager (Fase 2)
+        // ------------------------------------------------------------------
+
+        private static void BuildKeys()
+        {
+            Transform parent = new GameObject("Llaves").transform;
+            CreateKey(parent, "Llave_1", new Vector3(-7f, 0.8f, 13f));      // esquina de la sala de envoltura
+            CreateKey(parent, "Llave_2", new Vector3(12.5f, 0.8f, 48.5f));  // junto al árbol, línea de ensamblaje
+            CreateKey(parent, "Llave_3", new Vector3(-45f, 0.8f, 48.5f));   // fondo del almacén de muñecos
+        }
+
+        private static void CreateKey(Transform parent, string name, Vector3 pos)
+        {
+            var root = new GameObject(name);
+            root.transform.SetParent(parent, false);
+            root.transform.localPosition = pos;
+
+            var trigger = root.AddComponent<SphereCollider>();
+            trigger.isTrigger = true;
+            trigger.radius = 0.9f;
+
+            root.AddComponent<KeyPickup>();
+            root.AddComponent<Bobbing>();
+
+            // Llave hecha con primitivas: anillo (cilindro plano), vástago y dientes
+            Transform visual = Child(root.transform, "Visual");
+            visual.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            GameObject ring = Cylinder("Anillo", visual, new Vector3(0f, 0.25f, 0f), new Vector3(0.25f, 0.03f, 0.25f), matKey, false);
+            ring.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            GameObject shaft = Box("Vastago", visual, new Vector3(0f, -0.05f, 0f), new Vector3(0.05f, 0.45f, 0.05f), matKey, false);
+            GameObject tooth1 = Box("Diente_1", visual, new Vector3(0.06f, -0.22f, 0f), new Vector3(0.1f, 0.05f, 0.04f), matKey, false);
+            GameObject tooth2 = Box("Diente_2", visual, new Vector3(0.05f, -0.12f, 0f), new Vector3(0.08f, 0.04f, 0.04f), matKey, false);
+            foreach (GameObject part in new[] { ring, shaft, tooth1, tooth2 })
+            {
+                Object.DestroyImmediate(part.GetComponent<Collider>());
+            }
+
+            // Luz dorada pequeña para que la llave se vea a lo lejos
+            var glow = new GameObject("Brillo");
+            glow.transform.SetParent(root.transform, false);
+            var light = glow.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.8f, 0.3f);
+            light.intensity = 0.8f;
+            light.range = 2.5f;
+            light.shadows = LightShadows.None;
+        }
+
+        /// <summary>
+        /// Puerta tipo cortina metálica en el hueco este de la sala de salida,
+        /// y la zona de escape en el patio nevado.
+        /// </summary>
+        private static void BuildExitDoor(Transform level)
+        {
+            Transform exitRoot = Child(level, "Salida");
+
+            var door = new GameObject("PuertaSalida");
+            door.transform.SetParent(exitRoot, false);
+            door.transform.localPosition = new Vector3(40f, 0f, 40f);
+
+            // Trigger dentro de la sala, justo delante de la puerta
+            var zone = door.AddComponent<BoxCollider>();
+            zone.isTrigger = true;
+            zone.center = new Vector3(-1.5f, 1f, 0f);
+            zone.size = new Vector3(3f, 2f, DoorWidth);
+
+            ExitDoor exitDoor = door.AddComponent<ExitDoor>();
+
+            GameObject panel = Box("Hoja", door.transform, new Vector3(0f, WallHeight * 0.5f, 0f),
+                                   new Vector3(0.25f, WallHeight, DoorWidth), matDoor, false);
+
+            var so = new SerializedObject(exitDoor);
+            so.FindProperty("doorPanel").objectReferenceValue = panel.transform;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            // Zona de escape: al pisar la nieve de afuera se gana
+            var escape = new GameObject("ZonaEscape");
+            escape.transform.SetParent(exitRoot, false);
+            escape.transform.localPosition = new Vector3(45.5f, 1f, 40f);
+            var escapeCol = escape.AddComponent<BoxCollider>();
+            escapeCol.isTrigger = true;
+            escapeCol.size = new Vector3(8f, 2f, 11f);
+            escape.AddComponent<EscapeZone>();
+        }
+
+        private static void BuildGameManager(GameObject player)
+        {
+            var go = new GameObject("GameManager");
+            GameManager gm = go.AddComponent<GameManager>();
+
+            var so = new SerializedObject(gm);
+            so.FindProperty("playerMovement").objectReferenceValue = player.GetComponent<PlayerMovement>();
+            so.FindProperty("playerLook").objectReferenceValue = player.GetComponent<PlayerLook>();
+            so.FindProperty("flashlight").objectReferenceValue = player.GetComponentInChildren<Flashlight>();
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>Agrega la escena a Build Settings (sin quitar las que ya estaban) para poder reiniciarla.</summary>
+        private static void AddSceneToBuildSettings(string path)
+        {
+            var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+            foreach (EditorBuildSettingsScene s in scenes)
+            {
+                if (s.path == path) return;
+            }
+            scenes.Add(new EditorBuildSettingsScene(path, true));
+            EditorBuildSettings.scenes = scenes.ToArray();
         }
 
         // ------------------------------------------------------------------
