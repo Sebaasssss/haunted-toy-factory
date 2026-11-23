@@ -1,0 +1,64 @@
+# ==============================================
+# .gitignore para proyectos de Unity
+# Los archivos .meta NO se ignoran: Unity los necesita
+# para conservar referencias entre assets.
+# ==============================================
+
+# --- Carpetas generadas por Unity ---
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Asset Store tools
+/[Aa]ssets/AssetStoreTools*
+
+# Datos de crash / profiler
+sysinfo.txt
+crashlytics-build.properties
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# --- Archivos de IDE ---
+.vs/
+.vscode/
+.idea/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+ExportedObj/
+
+# Archivos .pdb.meta / .mdb.meta generados
+*.pdb.meta
+*.mdb.meta
+
+# Gradle
+.gradle/
+
+# --- Archivos del sistema ---
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
