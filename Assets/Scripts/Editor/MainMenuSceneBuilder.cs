@@ -37,6 +37,14 @@ namespace HauntedFactory.EditorTools
             cam.backgroundColor = new Color(0.03f, 0.015f, 0.025f);
             camGo.AddComponent<AudioListener>();
 
+            // Cajita musical navideña desafinada de fondo
+            var music = camGo.AddComponent<AudioSource>();
+            music.clip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Placeholder/musica_cajita_bucle.wav");
+            music.loop = true;
+            music.playOnAwake = true;
+            music.spatialBlend = 0f;
+            music.volume = 0.5f;
+
             UIFactory.CreateEventSystem();
             Canvas canvas = UIFactory.CreateCanvas("UI_Menu", 0);
             Transform root = canvas.transform;
@@ -109,6 +117,7 @@ namespace HauntedFactory.EditorTools
                 UIFactory.CreateImage("Foco_" + i, lights, colors[i % colors.Length], new Vector2(0.5f, 1f),
                                       UIFactory.Center, new Vector2(x, y), new Vector2(18f, 26f));
             }
+            lights.gameObject.AddComponent<UILightString>();
         }
     }
 }
