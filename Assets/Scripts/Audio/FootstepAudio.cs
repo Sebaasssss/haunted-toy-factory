@@ -25,6 +25,25 @@ namespace HauntedFactory.Audio
             if (movement != null) controller = movement.GetComponent<CharacterController>();
         }
 
+        private void OnEnable()
+        {
+            if (movement != null) movement.Landed += OnLanded;
+        }
+
+        private void OnDisable()
+        {
+            if (movement != null) movement.Landed -= OnLanded;
+        }
+
+        /// <summary>Golpe más fuerte al caer de un salto.</summary>
+        private void OnLanded()
+        {
+            if (steps == null || steps.Length == 0) return;
+            source.pitch = Random.Range(0.75f, 0.85f);
+            source.PlayOneShot(steps[Random.Range(0, steps.Length)], runVolume * 1.2f);
+            timer = walkInterval;
+        }
+
         private void Update()
         {
             if (movement == null || steps == null || steps.Length == 0) return;

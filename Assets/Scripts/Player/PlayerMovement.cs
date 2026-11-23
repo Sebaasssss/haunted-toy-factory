@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -5,7 +6,8 @@ namespace HauntedFactory.Player
 {
     /// <summary>
     /// Movimiento del elfo en primera persona.
-    /// WASD para caminar, Shift para correr. Usa CharacterController y aplica gravedad.
+    /// WASD para caminar, Shift para correr, Espacio para saltar.
+    /// Usa CharacterController y aplica gravedad.
     /// Lee el teclado con el Input System nuevo (el proyecto tiene desactivado el Input Manager viejo).
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
@@ -17,12 +19,16 @@ namespace HauntedFactory.Player
         [Tooltip("Qué tan rápido se alcanza la velocidad objetivo (suaviza arranques y frenadas).")]
         [SerializeField] private float acceleration = 14f;
 
-        [Header("Gravedad")]
+        [Header("Salto y gravedad")]
+        [Tooltip("Altura máxima del salto en metros.")]
+        [SerializeField] private float jumpHeight = 1.1f;
         [SerializeField] private float gravity = -20f;
 
         private CharacterController controller;
         private Vector3 horizontalVelocity;
         private float verticalVelocity;
+        private bool wasGrounded = true;
+        private float airTime;
 
         /// <summary>True mientras el jugador se mueve.</summary>
         public bool IsMoving { get; private set; }
@@ -32,6 +38,13 @@ namespace HauntedFactory.Player
 
         /// <summary>Permite bloquear el movimiento (menús, game over, victoria).</summary>
         public bool CanMove { get; set; } = true;
+
+        public bool IsGrounded => controller != null && controller.isGrounded;
+
+        /// <summary>Se dispara al despegar del suelo con un salto.</summary>
+        public event Action Jumped;
+        /// <summary>Se dispara al tocar el suelo después de estar en el aire.</summary>
+        public event Action Landed;
 
         private void Awake()
         {
@@ -50,10 +63,23 @@ namespace HauntedFactory.Player
             Vector3 desired = (transform.right * input.x + transform.forward * input.y) * targetSpeed;
             horizontalVelocity = Vector3.MoveTowards(horizontalVelocity, desired, acceleration * Time.deltaTime);
 
+            bool grounded = controller.isGrounded;
+            // Solo cuenta como aterrizaje si estuvo un rato en el aire (no por escalones)
+            if (grounded && !wasGrounded && airTime > 0.25f) Landed?.Invoke();
+            airTime = grounded ? 0f : airTime + Time.deltaTime;
+            wasGrounded = grounded;
+
             // Gravedad: pegado al suelo cuando está apoyado
-            if (controller.isGrounded && verticalVelocity < 0f)
+            if (grounded && verticalVelocity < 0f)
             {
                 verticalVelocity = -2f;
+            }
+
+            // Salto: v = raíz(2 * g * h)
+            if (CanMove && grounded && IsJumpPressed())
+            {
+                verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+                Jumped?.Invoke();
             }
             verticalVelocity += gravity * Time.deltaTime;
 
@@ -73,6 +99,12 @@ namespace HauntedFactory.Player
             if (kb.dKey.isPressed) v.x += 1f;
             if (kb.aKey.isPressed) v.x -= 1f;
             return Vector2.ClampMagnitude(v, 1f);
+        }
+
+        private static bool IsJumpPressed()
+        {
+            Keyboard kb = Keyboard.current;
+            return kb != null && kb.spaceKey.wasPressedThisFrame;
         }
 
         private static bool IsShiftPressed()

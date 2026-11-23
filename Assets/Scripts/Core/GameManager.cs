@@ -66,6 +66,15 @@ namespace HauntedFactory.Core
             KeysChanged?.Invoke(keysCollected, requiredKeys);
             // Un poco después, para que el HUD ya esté suscrito
             Invoke(nameof(ShowIntroMessage), 0.5f);
+            Invoke(nameof(ShowFlashlightHint), 5f);
+        }
+
+        private void ShowFlashlightHint()
+        {
+            if (State == GameState.Playing)
+            {
+                ShowMessage("Los juguetes no se mueven si los iluminas... pero la luz los atrae.");
+            }
         }
 
         private void ShowIntroMessage()

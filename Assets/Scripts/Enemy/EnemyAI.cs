@@ -14,6 +14,8 @@ namespace HauntedFactory.Enemy
     /// - Persecución: corre hacia el jugador mientras lo detecta.
     /// - Búsqueda: si lo pierde, va a la última posición conocida, mira alrededor
     ///   y luego vuelve a patrullar.
+    /// - Congelado: mientras la linterna lo ilumina no se mueve ni puede atrapar
+    ///   (como los juguetes que se quedan quietos cuando los miran).
     /// Si llega a tocar al jugador, avisa al GameManager (game over).
     /// </summary>
     [RequireComponent(typeof(NavMeshAgent))]
@@ -35,6 +37,10 @@ namespace HauntedFactory.Enemy
         [SerializeField] private float searchDuration = 4f;
         [SerializeField] private float repathInterval = 0.2f;
 
+        [Header("Linterna")]
+        [Tooltip("Si está activo, el juguete se congela mientras lo ilumina la linterna.")]
+        [SerializeField] private bool freezeWhenLit = true;
+
         [Header("Atrapar")]
         [SerializeField] private float catchDistance = 1.2f;
 
@@ -48,6 +54,12 @@ namespace HauntedFactory.Enemy
         private float repathTimer;
 
         public EnemyState State => state;
+
+        /// <summary>True mientras la linterna lo tiene congelado.</summary>
+        public bool IsFrozen { get; private set; }
+
+        /// <summary>Se dispara al congelarse (true) o liberarse (false).</summary>
+        public event Action<bool> FrozenChanged;
 
         /// <summary>Se dispara al cambiar de estado (útil para música de persecución).</summary>
         public event Action<EnemyState> StateChanged;
@@ -80,11 +92,27 @@ namespace HauntedFactory.Enemy
                 return;
             }
 
-            if (perception.CanDetectPlayer())
+            bool detected = perception.CanDetectPlayer();
+            if (detected)
             {
                 lastDetectedTime = Time.time;
                 if (state != EnemyState.Chase) SetState(EnemyState.Chase);
             }
+
+            // Congelado por la linterna: quieto y sin poder atrapar
+            bool lit = freezeWhenLit && perception.IsLitByFlashlight();
+            if (lit != IsFrozen)
+            {
+                IsFrozen = lit;
+                FrozenChanged?.Invoke(lit);
+            }
+            if (IsFrozen)
+            {
+                agent.isStopped = true;
+                agent.velocity = Vector3.zero;
+                return;
+            }
+            if (agent.isStopped) agent.isStopped = false;
 
             switch (state)
             {

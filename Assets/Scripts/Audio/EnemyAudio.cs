@@ -28,12 +28,27 @@ namespace HauntedFactory.Audio
 
         private void OnEnable()
         {
-            if (enemy != null) enemy.StateChanged += OnStateChanged;
+            if (enemy != null)
+            {
+                enemy.StateChanged += OnStateChanged;
+                enemy.FrozenChanged += OnFrozenChanged;
+            }
         }
 
         private void OnDisable()
         {
-            if (enemy != null) enemy.StateChanged -= OnStateChanged;
+            if (enemy != null)
+            {
+                enemy.StateChanged -= OnStateChanged;
+                enemy.FrozenChanged -= OnFrozenChanged;
+            }
+        }
+
+        /// <summary>Iluminado por la linterna, el mecanismo se detiene en seco.</summary>
+        private void OnFrozenChanged(bool frozen)
+        {
+            if (frozen) loopSource.Pause();
+            else loopSource.UnPause();
         }
 
         private void Start()

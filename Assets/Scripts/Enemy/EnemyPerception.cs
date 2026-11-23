@@ -7,6 +7,7 @@ namespace HauntedFactory.Enemy
     /// Sentidos del juguete poseído: vista (cono + línea de visión) y oído.
     /// - Con la linterna encendida te ve desde más lejos (la luz te delata).
     /// - Si corres te oye a través de las paredes; caminando solo de cerca.
+    /// - Sabe si la linterna lo está iluminando (los juguetes se congelan con luz).
     /// Solo detecta; las decisiones las toma EnemyAI.
     /// </summary>
     public class EnemyPerception : MonoBehaviour
@@ -21,6 +22,14 @@ namespace HauntedFactory.Enemy
         [SerializeField] private float eyeHeight = 1.35f;
         [Tooltip("Capas que bloquean la vista (paredes, muebles...).")]
         [SerializeField] private LayerMask obstacleMask = ~0;
+
+        [Header("Linterna")]
+        [Tooltip("Fracción del alcance de la linterna dentro de la cual congela al juguete.")]
+        [Range(0.1f, 1f)]
+        [SerializeField] private float flashlightReach = 0.8f;
+        [Tooltip("Fuerza mínima de la luz para congelar (con batería baja, los parpadeos lo liberan).")]
+        [Range(0f, 1f)]
+        [SerializeField] private float minLightStrength = 0.35f;
 
         [Header("Oído")]
         [SerializeField] private float hearRunningDistance = 9f;
@@ -52,6 +61,28 @@ namespace HauntedFactory.Enemy
             playerFlashlight = go.GetComponentInChildren<Flashlight>();
             Camera cam = go.GetComponentInChildren<Camera>();
             playerEye = cam != null ? cam.transform : player;
+        }
+
+        /// <summary>True si el haz de la linterna lo alcanza con línea directa.</summary>
+        public bool IsLitByFlashlight()
+        {
+            if (playerFlashlight == null || playerFlashlight.CurrentStrength < minLightStrength) return false;
+            Light beam = playerFlashlight.LightSource;
+            if (beam == null || !beam.enabled) return false;
+
+            Transform source = beam.transform;
+            Vector3 target = transform.position + Vector3.up * (eyeHeight * 0.75f);
+            Vector3 toTarget = target - source.position;
+            float distance = toTarget.magnitude;
+
+            if (distance > beam.range * flashlightReach) return false;
+            if (Vector3.Angle(source.forward, toTarget) > beam.spotAngle * 0.5f) return false;
+
+            if (Physics.Raycast(source.position, toTarget / distance, out RaycastHit hit, distance, obstacleMask, QueryTriggerInteraction.Ignore))
+            {
+                return hit.transform == transform || hit.transform.IsChildOf(transform);
+            }
+            return true;
         }
 
         /// <summary>True si este frame ve u oye al jugador. Actualiza LastKnownPosition.</summary>

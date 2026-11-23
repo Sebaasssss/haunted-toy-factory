@@ -35,11 +35,21 @@ namespace HauntedFactory.Player
         private float baseIntensity;
         private float battery;
         private bool isOn;
+        private float currentFactor = 1f;
 
         /// <summary>Batería normalizada entre 0 y 1 (para el HUD).</summary>
         public float Battery01 => maxBattery > 0f ? battery / maxBattery : 0f;
 
         public bool IsOn => isOn;
+
+        /// <summary>
+        /// Qué tan fuerte alumbra ahora (0 a 1). Con batería baja baja y parpadea,
+        /// así que los juguetes pueden "escaparse" de la luz en los parpadeos.
+        /// </summary>
+        public float CurrentStrength => isOn ? currentFactor : 0f;
+
+        /// <summary>Componente Light de la linterna (alcance y ángulo del haz).</summary>
+        public Light LightSource => lightSource;
 
         /// <summary>Permite bloquear la tecla F (menús, game over).</summary>
         public bool CanUseInput { get; set; } = true;
@@ -106,6 +116,7 @@ namespace HauntedFactory.Player
             isOn = on;
             lightSource.enabled = on;
             lightSource.intensity = baseIntensity;
+            currentFactor = 1f;
         }
 
         /// <summary>Con poca batería la luz se debilita y da tirones aleatorios.</summary>
@@ -118,6 +129,7 @@ namespace HauntedFactory.Player
                     ? UnityEngine.Random.Range(0.05f, 0.5f)
                     : Mathf.Lerp(0.45f, 1f, Battery01 / lowBatteryThreshold);
             }
+            currentFactor = factor;
             lightSource.intensity = baseIntensity * factor;
         }
 

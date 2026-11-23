@@ -48,24 +48,44 @@ namespace HauntedFactory.EditorTools
             Text percent = UIFactory.CreateCenteredText("Bateria_Porcentaje", background.transform, "100%", 22,
                                                         Color.white, Vector2.zero, new Vector2(320f, 30f), FontStyle.Bold);
 
-            // Llaves (arriba a la izquierda)
-            Text keys = UIFactory.CreateText("Llaves", hud, "Llaves: 0 / 3", 36, UIFactory.Gold, TextAnchor.UpperLeft,
-                                             topLeft, topLeft, new Vector2(40f, -30f), new Vector2(500f, 50f), FontStyle.Bold);
+            // Llaves (arriba a la izquierda): texto + 3 casillas que se llenan de dorado
+            Text keys = UIFactory.CreateText("Llaves", hud, "LLAVES  0 / 3", 32, UIFactory.Gold, TextAnchor.UpperLeft,
+                                             topLeft, topLeft, new Vector2(40f, -30f), new Vector2(500f, 45f), FontStyle.Bold);
+            UIFactory.AddShadow(keys, new Color(0f, 0f, 0f, 0.8f), new Vector2(2f, -2f));
+            var slots = new Image[3];
+            for (int i = 0; i < slots.Length; i++)
+            {
+                Image frame = UIFactory.CreateImage("Casilla_" + i, hud, new Color(0f, 0f, 0f, 0.6f), topLeft, topLeft,
+                                                    new Vector2(40f + i * 52f, -82f), new Vector2(44f, 44f));
+                UIFactory.AddOutline(frame, new Color(1f, 0.8f, 0.3f, 0.5f), new Vector2(2f, 2f));
+                RectTransform inner = UIFactory.CreateRect("Llave", frame.transform);
+                UIFactory.Stretch(inner);
+                inner.offsetMin = new Vector2(8f, 8f);
+                inner.offsetMax = new Vector2(-8f, -8f);
+                slots[i] = inner.gameObject.AddComponent<Image>();
+                slots[i].color = new Color(1f, 1f, 1f, 0.12f);
+                slots[i].raycastTarget = false;
+            }
 
             // Mensajes (abajo al centro)
             Text message = UIFactory.CreateText("Mensaje", hud, "", 32, UIFactory.Cream, TextAnchor.MiddleCenter,
                                                 bottomCenter, bottomCenter, new Vector2(0f, 150f), new Vector2(1400f, 60f));
 
             // Recordatorio de controles (abajo a la derecha)
-            UIFactory.CreateText("Controles", hud, "WASD mover · Shift correr · F linterna · Esc pausa", 20,
+            UIFactory.CreateText("Controles", hud, "WASD mover · Espacio saltar · Shift correr · F linterna · Esc pausa", 20,
                                  new Color(1f, 1f, 1f, 0.45f), TextAnchor.LowerRight, bottomRight, bottomRight,
-                                 new Vector2(-40f, 40f), new Vector2(800f, 30f));
+                                 new Vector2(-40f, 40f), new Vector2(1000f, 30f));
 
             UIFactory.Wire(controller, "flashlight", player.GetComponentInChildren<Flashlight>());
             UIFactory.Wire(controller, "batteryFill", fill);
             UIFactory.Wire(controller, "batteryText", percent);
             UIFactory.Wire(controller, "keysText", keys);
             UIFactory.Wire(controller, "messageText", message);
+            UIFactory.AddShadow(message, new Color(0f, 0f, 0f, 0.9f), new Vector2(2f, -2f));
+
+            var so = new UnityEditor.SerializedObject(controller);
+            EnvironmentFactory.SetObjectArray(so.FindProperty("keySlots"), slots);
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void BuildPauseMenu(Transform root)

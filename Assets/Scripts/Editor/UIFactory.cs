@@ -1,3 +1,4 @@
+using HauntedFactory.UI;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -138,6 +139,75 @@ namespace HauntedFactory.EditorTools
                               Center, Center, position, size, style);
         }
 
+        /// <summary>Sonido corto al pasar el mouse por un botón.</summary>
+        public static AudioClip HoverClip =>
+            AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Placeholder/sfx_linterna_click.wav");
+
+        /// <summary>
+        /// Botón "de texto" para el menú principal: sin fondo, alineado a la izquierda,
+        /// con efecto al pasar el mouse (color, desplazamiento y "» ").
+        /// </summary>
+        public static Button CreateMenuButton(string name, Transform parent, string label, Vector2 anchor,
+                                              Vector2 position, Vector2 size, int fontSize = 46)
+        {
+            RectTransform rt = CreateRect(name, parent);
+            Place(rt, anchor, new Vector2(0f, 0.5f), position, size);
+
+            var img = rt.gameObject.AddComponent<Image>();
+            img.color = new Color(0f, 0f, 0f, 0f); // invisible pero recibe clics
+
+            var button = rt.gameObject.AddComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            button.targetGraphic = img;
+
+            Text text = CreateText("Texto", rt, label, fontSize, Cream, TextAnchor.MiddleLeft,
+                                   new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, size, FontStyle.Bold);
+            AddShadow(text, new Color(0f, 0f, 0f, 0.8f), new Vector2(3f, -3f));
+            AddButtonFX(rt.gameObject, text);
+            return button;
+        }
+
+        public static void AddShadow(Graphic graphic, Color color, Vector2 distance)
+        {
+            var shadow = graphic.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = color;
+            shadow.effectDistance = distance;
+        }
+
+        public static void AddOutline(Graphic graphic, Color color, Vector2 distance)
+        {
+            var outline = graphic.gameObject.AddComponent<Outline>();
+            outline.effectColor = color;
+            outline.effectDistance = distance;
+        }
+
+        private static void AddButtonFX(GameObject go, Text label)
+        {
+            var fx = go.AddComponent<MenuButtonFX>();
+            Wire(fx, "label", label);
+            Wire(fx, "hoverSound", HoverClip);
+        }
+
+        /// <summary>Carga una textura como Sprite (cambia su importador si hace falta).</summary>
+        public static Sprite LoadSprite(string path)
+        {
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null)
+            {
+                Debug.LogWarning("[UIFactory] No se encontró la textura " + path);
+                return null;
+            }
+            if (importer.textureType != TextureImporterType.Sprite || importer.alphaIsTransparency == false)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.alphaIsTransparency = true;
+                importer.mipmapEnabled = false;
+                importer.wrapMode = TextureWrapMode.Clamp;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
         public static Button CreateButton(string name, Transform parent, string label, Vector2 position,
                                           Vector2 size)
         {
@@ -157,7 +227,9 @@ namespace HauntedFactory.EditorTools
             button.colors = colors;
             button.targetGraphic = img;
 
-            CreateCenteredText("Texto", rt, label, 34, Cream, Vector2.zero, size, FontStyle.Bold);
+            AddOutline(img, new Color(1f, 0.75f, 0.3f, 0.35f), new Vector2(2f, 2f));
+            Text text = CreateCenteredText("Texto", rt, label, 34, Cream, Vector2.zero, size, FontStyle.Bold);
+            AddButtonFX(rt.gameObject, text);
             return button;
         }
 

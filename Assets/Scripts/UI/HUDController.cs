@@ -17,6 +17,10 @@ namespace HauntedFactory.UI
         [SerializeField] private Image batteryFill;
         [SerializeField] private Text batteryText;
         [SerializeField] private Text keysText;
+        [Tooltip("Casillas que se llenan de dorado al encontrar cada llave.")]
+        [SerializeField] private Image[] keySlots;
+        [SerializeField] private Color keySlotEmpty = new Color(1f, 1f, 1f, 0.12f);
+        [SerializeField] private Color keySlotFull = new Color(1f, 0.8f, 0.25f, 1f);
         [SerializeField] private Text messageText;
 
         [Header("Colores de batería")]
@@ -81,7 +85,12 @@ namespace HauntedFactory.UI
 
         private void OnKeysChanged(int collected, int required)
         {
-            if (keysText != null) keysText.text = "Llaves: " + collected + " / " + required;
+            if (keysText != null) keysText.text = "LLAVES  " + collected + " / " + required;
+            if (keySlots == null) return;
+            for (int i = 0; i < keySlots.Length; i++)
+            {
+                if (keySlots[i] != null) keySlots[i].color = i < collected ? keySlotFull : keySlotEmpty;
+            }
         }
 
         private void OnMessageShown(string message)
