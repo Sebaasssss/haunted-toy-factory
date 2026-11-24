@@ -62,3 +62,6 @@ ExportedObj/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Archivos temporales de Burst que genera la build Web
+/[Dd]ata/
