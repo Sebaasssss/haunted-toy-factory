@@ -1,3 +1,4 @@
+using HauntedFactory.Audio;
 using HauntedFactory.Lighting;
 using HauntedFactory.UI;
 using HauntedFactory.World;
@@ -42,7 +43,7 @@ namespace HauntedFactory.EditorTools
             EnvironmentFactory.Snowfall("PolvoNieve", cam.transform.position + new Vector3(1.5f, 3f, 3.5f), new Vector2(8f, 6f), 60f, 0.3f);
 
             UIFactory.CreateEventSystem();
-            BuildUI();
+            BuildUI(cam.GetComponent<AudioSource>());
 
             EditorSceneManager.SaveScene(scene, SceneBuildUtility.MainMenuPath);
             SceneBuildUtility.ConfigureBuildSettings();
@@ -141,7 +142,7 @@ namespace HauntedFactory.EditorTools
         // Interfaz
         // ------------------------------------------------------------------
 
-        private static void BuildUI()
+        private static void BuildUI(AudioSource music)
         {
             Canvas canvas = UIFactory.CreateCanvas("UI_Menu", 0);
             Transform root = canvas.transform;
@@ -191,6 +192,18 @@ namespace HauntedFactory.EditorTools
             Button controls = UIFactory.CreateMenuButton("Btn_Controles", main, "CONTROLES", left, new Vector2(100f, -190f), new Vector2(520f, 72f));
             Button quit = UIFactory.CreateMenuButton("Btn_Salir", main, "SALIR", left, new Vector2(100f, -265f), new Vector2(520f, 72f));
 
+
+            // Aviso de sonido (solo aparece en la versión web, hasta el primer clic)
+            Text soundHint = UIFactory.CreateText("AvisoSonido", root, "Haz clic en cualquier parte para activar el sonido", 22,
+                                                  new Color(1f, 0.82f, 0.3f, 0.8f), TextAnchor.LowerCenter, new Vector2(0.5f, 0f),
+                                                  new Vector2(0.5f, 0f), new Vector2(0f, 28f), new Vector2(900f, 34f), FontStyle.Italic);
+            UIFactory.AddShadow(soundHint, Color.black, new Vector2(2f, -2f));
+            soundHint.gameObject.AddComponent<TextFlicker>();
+            var unlock = root.gameObject.AddComponent<WebAudioUnlock>();
+            var unlockSo = new SerializedObject(unlock);
+            EnvironmentFactory.SetObjectArray(unlockSo.FindProperty("sources"), new Object[] { music });
+            unlockSo.FindProperty("hint").objectReferenceValue = soundHint.gameObject;
+            unlockSo.ApplyModifiedPropertiesWithoutUndo();
 
             // ---- Panel de controles (tarjeta centrada) ----
             Image overlay = UIFactory.CreatePanel("Panel_Controles", root, new Color(0f, 0f, 0f, 0.75f));
