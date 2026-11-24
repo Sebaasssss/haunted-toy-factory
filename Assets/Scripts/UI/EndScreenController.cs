@@ -9,7 +9,8 @@ namespace HauntedFactory.UI
     /// Pantallas finales.
     /// - Victoria: tiempo y pilas recogidas.
     /// - Derrota: primero la cámara mira al juguete (CaughtCamera) y hay un destello;
-    ///   después aparece la pantalla con quién te atrapó, tus estadísticas y una frase.
+    ///   después aparece la pantalla (semitransparente, el juguete se sigue viendo detrás)
+    ///   con quién te atrapó, tarjetas de estadísticas y una frase.
     /// Todo con tiempo sin escalar (el juego queda congelado).
     /// </summary>
     public class EndScreenController : MonoBehaviour
@@ -24,7 +25,9 @@ namespace HauntedFactory.UI
         [SerializeField] private GameObject defeatPanel;
         [SerializeField] private CanvasGroup defeatGroup;
         [SerializeField] private Text defeatCaughtByText;
-        [SerializeField] private Text defeatStatsText;
+        [SerializeField] private Text defeatKeysValue;
+        [SerializeField] private Text defeatBatteriesValue;
+        [SerializeField] private Text defeatTimeValue;
         [SerializeField] private Text defeatQuoteText;
         [SerializeField] private Button defeatRestartButton;
         [SerializeField] private Button defeatMenuButton;
@@ -83,17 +86,14 @@ namespace HauntedFactory.UI
             if (gm != null)
             {
                 string who = string.IsNullOrEmpty(gm.CatcherName) ? "Un juguete" : gm.CatcherName;
-                if (defeatCaughtByText != null) defeatCaughtByText.text = who + " te atrapó";
-                if (defeatStatsText != null)
-                {
-                    defeatStatsText.text = "Llaves encontradas:   " + gm.KeysCollected + " / " + gm.RequiredKeys + "\n" +
-                                           "Pilas recogidas:   " + gm.BatteriesCollected + "\n" +
-                                           "Tiempo sobrevivido:   " + FormatTime(gm.ElapsedTime);
-                }
+                SetText(defeatCaughtByText, who + " te atrapó");
+                SetText(defeatKeysValue, gm.KeysCollected + " / " + gm.RequiredKeys);
+                SetText(defeatBatteriesValue, gm.BatteriesCollected.ToString());
+                SetText(defeatTimeValue, FormatTime(gm.ElapsedTime));
             }
-            if (defeatQuoteText != null && defeatQuotes != null && defeatQuotes.Length > 0)
+            if (defeatQuotes != null && defeatQuotes.Length > 0)
             {
-                defeatQuoteText.text = "“" + defeatQuotes[Random.Range(0, defeatQuotes.Length)] + "”";
+                SetText(defeatQuoteText, "“" + defeatQuotes[Random.Range(0, defeatQuotes.Length)] + "”");
             }
             StartCoroutine(DefeatSequence());
         }
@@ -118,6 +118,11 @@ namespace HauntedFactory.UI
             }
             defeatGroup.alpha = 1f;
             defeatGroup.interactable = true;
+        }
+
+        private static void SetText(Text text, string value)
+        {
+            if (text != null) text.text = value;
         }
 
         private static string FormatTime(float seconds)

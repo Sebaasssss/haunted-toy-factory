@@ -154,21 +154,42 @@ namespace HauntedFactory.EditorTools
         /// Letrero de neón en un Canvas en el mundo. El texto se lee desde el lado
         /// opuesto a su eje +Z: para un letrero pegado a una pared, +Z apunta a la pared.
         /// </summary>
+        /// <summary>
+        /// Letrero de neón. El texto se lee desde el lado opuesto a su eje +Z
+        /// (para un letrero pegado a una pared, +Z apunta a la pared).
+        /// doubleSided: para letreros que cuelgan sobre una puerta. worldPos es el centro
+        /// del muro; se pone una cara pegada a cada lado del muro. La cara trasera
+        /// (la del pasillo) se achica para que quepa en un pasillo de 4 m.
+        /// </summary>
         public static void NeonSign(Transform parent, string name, Vector3 worldPos, float yaw, string text, Color color,
                                     int fontSize, float widthMeters, bool flicker, bool doubleSided = false)
         {
-            // Tablero oscuro detrás del texto (tapa la cara trasera del canvas)
+            if (!doubleSided)
+            {
+                CreateSignFace(parent, name, worldPos, yaw, text, color, fontSize, widthMeters, flicker);
+                return;
+            }
+
+            const float wallOffset = 0.19f;   // medio grosor del muro + un poco
+            const float maxBackWidth = 3.4f;  // ancho útil de un pasillo de 4 m
+            Vector3 front = Quaternion.Euler(0f, yaw, 0f) * Vector3.back;
+            CreateSignFace(parent, name, worldPos + front * wallOffset, yaw, text, color, fontSize, widthMeters, flicker);
+
+            float backWidth = Mathf.Min(widthMeters, maxBackWidth);
+            int backFont = Mathf.RoundToInt(fontSize * backWidth / widthMeters);
+            CreateSignFace(parent, name + "_Reverso", worldPos - front * wallOffset, yaw + 180f, text, color, backFont, backWidth, flicker);
+        }
+
+        /// <summary>Una cara de letrero: tablero oscuro, texto de neón encima y su luz.</summary>
+        private static void CreateSignFace(Transform parent, string name, Vector3 worldPos, float yaw, string text, Color color,
+                                           int fontSize, float widthMeters, bool flicker)
+        {
             Transform board = PropFactory.Child(parent, name + "_Tablero");
             board.position = worldPos;
             board.rotation = Quaternion.Euler(0f, yaw, 0f);
             PropFactory.Box("Tablero", board, Vector3.zero, new Vector3(widthMeters + 0.2f, 0.75f, 0.03f), MaterialLibrary.Black, false, false);
 
             CreateNeonCanvas(parent, name, worldPos + board.rotation * Vector3.back * 0.03f, yaw, text, color, fontSize, widthMeters, flicker);
-            if (doubleSided)
-            {
-                CreateNeonCanvas(parent, name + "_Reverso", worldPos + board.rotation * Vector3.forward * 0.03f, yaw + 180f,
-                                 text, color, fontSize, widthMeters, flicker);
-            }
         }
 
         private static void CreateNeonCanvas(Transform parent, string name, Vector3 worldPos, float yaw, string text, Color color,

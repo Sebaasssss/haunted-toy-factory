@@ -18,7 +18,6 @@ namespace HauntedFactory.EditorTools
     public static class MainMenuSceneBuilder
     {
         private const string PostFxPath = "Assets/Scenes/MainMenu/PostFX-Menu.asset";
-        private const string GradientPath = "Assets/Art/UI/T_UI_Degradado.png";
 
         [MenuItem("Tools/Haunted Factory/Construir menú principal", priority = 2)]
         public static void BuildFromMenu()
@@ -157,7 +156,7 @@ namespace HauntedFactory.EditorTools
             gradientRt.offsetMax = Vector2.zero;
             gradientRt.sizeDelta = new Vector2(1250f, 0f);
             var gradient = gradientRt.gameObject.AddComponent<Image>();
-            gradient.sprite = UIFactory.LoadSprite(GradientPath);
+            gradient.sprite = UIFactory.GradientH;
             gradient.color = gradient.sprite != null ? Color.black : new Color(0f, 0f, 0f, 0.6f);
             gradient.raycastTarget = false;
 
@@ -192,8 +191,6 @@ namespace HauntedFactory.EditorTools
             Button controls = UIFactory.CreateMenuButton("Btn_Controles", main, "CONTROLES", left, new Vector2(100f, -190f), new Vector2(520f, 72f));
             Button quit = UIFactory.CreateMenuButton("Btn_Salir", main, "SALIR", left, new Vector2(100f, -265f), new Vector2(520f, 72f));
 
-            UIFactory.CreateText("Pie", main, "Proyecto escolar · 2026", 20, new Color(1f, 1f, 1f, 0.35f), TextAnchor.LowerRight,
-                                 new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 30f), new Vector2(600f, 30f));
 
             // ---- Panel de controles (tarjeta centrada) ----
             Image overlay = UIFactory.CreatePanel("Panel_Controles", root, new Color(0f, 0f, 0f, 0.75f));

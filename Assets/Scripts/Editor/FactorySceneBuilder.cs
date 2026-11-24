@@ -617,11 +617,11 @@ namespace HauntedFactory.EditorTools
             // Letreros colgados sobre puertas: se leen por ambos lados
             EnvironmentFactory.NeonSign(root, "Neon_Taller", new Vector3(0f, 3.3f, 14f), 0f, "TALLER DE ENVOLTURA", gold, 120, 6f, false, true);
             EnvironmentFactory.NeonSign(root, "Neon_Jugueteria", new Vector3(0f, 3.3f, 30f), 180f, "JUGUETERÍA DE SANTA", pink, 150, 7f, true, true);
-            EnvironmentFactory.NeonSign(root, "Neon_Almacen", new Vector3(-30f, 3.4f, 40f), -90f, "ALMACÉN", blue, 160, 4f, true, true);
+            EnvironmentFactory.NeonSign(root, "Neon_Almacen", new Vector3(-30f, 3.4f, 40f), 90f, "ALMACÉN", blue, 160, 4f, true, true);
             EnvironmentFactory.NeonSign(root, "Neon_Salida", new Vector3(39.8f, 3.4f, 40f), 90f, "SALIDA", red, 180, 3.5f, false);
             EnvironmentFactory.NeonSign(root, "Neon_SalaJuegos", new Vector3(-20f, 3.3f, 7f), 90f, "SALA DE JUEGOS", new Color(1f, 0.85f, 0.2f), 120, 5f, true, true);
             EnvironmentFactory.NeonSign(root, "Neon_Oficina", new Vector3(20f, 3.3f, 7f), -90f, "OFICINA DE SANTA", gold, 120, 5f, false, true);
-            EnvironmentFactory.NeonSign(root, "Neon_Munecas", new Vector3(0f, 3.3f, 62f), 0f, "TALLER DE MUÑECAS", green, 120, 5.5f, true, true);
+            EnvironmentFactory.NeonSign(root, "Neon_Munecas", new Vector3(0f, 3.3f, 62f), 180f, "TALLER DE MUÑECAS", green, 120, 5.5f, true, true);
             EnvironmentFactory.NeonSign(root, "Neon_Lista", new Vector3(33.8f, 2.6f, 7f), 90f, "LISTA DE TRAVIESOS", red, 100, 4f, true);
             EnvironmentFactory.NeonSign(root, "Neon_NoTeVayas", new Vector3(36f, 2.4f, 33.2f), 180f, "NO TE VAYAS...", red, 140, 4.5f, true);
             EnvironmentFactory.NeonSign(root, "Neon_Juega", new Vector3(21f, 2.5f, 41.8f), 0f, "JUEGA CON NOSOTROS", red, 120, 6f, true);
